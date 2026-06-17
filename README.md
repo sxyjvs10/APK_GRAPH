@@ -55,10 +55,17 @@ pip install .
 
 After installation, you can run the tool directly or using the provided launcher.
 
-### Simple Launcher (Linux/macOS)
+### Simple Launcher
+
+#### Linux/macOS
 ```bash
 chmod +x apkgraph.sh
 ./apkgraph.sh <path_to_apk> -o my_report
+```
+
+#### Windows
+```cmd
+apkgraph.bat <path_to_apk> -o my_report
 ```
 
 ### Direct CLI
