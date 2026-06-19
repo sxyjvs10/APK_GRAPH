@@ -20,7 +20,7 @@ setup(
     },
     author="APKGraph Contributors",
     description="APKGraph v2.0 — Android Attack Surface Intelligence Platform",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/username/apkgraph",
     classifiers=[
