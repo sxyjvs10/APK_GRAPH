@@ -4,22 +4,26 @@ setlocal
 :: Detect Python executable
 set PYTHON_EXE=
 python --version >nul 2>&1
-if %errorlevel% equ 0 (
-    set PYTHON_EXE=python
-) else (
-    py --version >nul 2>&1
-    if %errorlevel% equ 0 (
-        set PYTHON_EXE=py
-    )
-)
+if %errorlevel% equ 0 goto set_python
+py --version >nul 2>&1
+if %errorlevel% equ 0 goto set_py
+goto check_fail
 
-if "%PYTHON_EXE%"=="" (
-    echo [!] Python is not installed or not in your PATH.
-    echo [!] Please install Python 3.8+ and try again.
-    pause
-    exit /b 1
-)
+:set_python
+set PYTHON_EXE=python
+goto continue_setup
 
+:set_py
+set PYTHON_EXE=py
+goto continue_setup
+
+:check_fail
+echo [!] Python is not installed or not in your PATH.
+echo [!] Please install Python 3.8+ and try again.
+pause
+exit /b 1
+
+:continue_setup
 :: Check if virtual environment exists
 if not exist "venv\Scripts\python.exe" (
     echo [*] First time setup: Creating Python virtual environment...
