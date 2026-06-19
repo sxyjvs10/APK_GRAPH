@@ -1,11 +1,5 @@
-// ================================================
-// PALMA DEVELOPMENT FINANCE - FULL AGGRESSIVE BYPASS
-// ================================================
-
 Java.perform(function () {
     console.log("[+] Palma Full Bypass Script Started");
-
-    // Emulator Bypass
     Java.use("android.os.Build").PRODUCT.value = "gracerltexx";
     Java.use("android.os.Build").MANUFACTURER.value = "samsung";
     Java.use("android.os.Build").BRAND.value = "samsung";
@@ -13,16 +7,11 @@ Java.perform(function () {
     Java.use("android.os.Build").MODEL.value = "SM-N935F";
     Java.use("android.os.Build").HARDWARE.value = "samsungexynos8890";
     Java.use("android.os.Build").FINGERPRINT.value = "samsung/gracerltexx/gracerlte:8.0.0/R16NW/N935FXXS4BRK2:user/release-keys";
-
     console.log("[+] Emulator bypass done");
 });
-
 setTimeout(function () {
     Java.perform(function () {
-
         console.log("[+] Applying Aggressive SSL Unpinning...");
-
-        // 1. Palma Custom TLSSocketFactory
         try {
             const TLSSocketFactory = Java.use("com.manappuram.palma.utils.TLSSocketFactory");
             TLSSocketFactory.$init.implementation = function () {
@@ -39,7 +28,6 @@ setTimeout(function () {
                         getAcceptedIssuers: function() { return []; }
                     }
                 });
-
                 this.trustManagers.value = [AllTrust.$new()];
                 const SSLContext = Java.use("javax.net.ssl.SSLContext");
                 const ctx = SSLContext.getInstance("TLSv1.3");
@@ -47,28 +35,21 @@ setTimeout(function () {
                 this.delegate.value = ctx.getSocketFactory();
             };
         } catch (e) { console.log("[-] TLSSocketFactory not found"); }
-
-        // 2. Strong Conscrypt Hooks (Most Important for your error)
         try {
             const TrustManagerImpl = Java.use("com.android.org.conscrypt.TrustManagerImpl");
             const ArrayList = Java.use("java.util.ArrayList");
-
             TrustManagerImpl.checkTrustedRecursive.implementation = function () {
                 console.log("[+] Bypassed checkTrustedRecursive");
                 return ArrayList.$new();
             };
-
             TrustManagerImpl.verifyChain.implementation = function (chain, trustAnchor, host) {
                 console.log("[+] Bypassed verifyChain for " + host);
                 return chain;
             };
         } catch (e) {}
-
-        // 3. Generic TrustManager Bypass
         try {
             const X509TrustManager = Java.use("javax.net.ssl.X509TrustManager");
             const SSLContext = Java.use("javax.net.ssl.SSLContext");
-
             SSLContext.init.overload(
                 '[Ljavax.net.ssl.KeyManager;', 
                 '[Ljavax.net.ssl.TrustManager;', 
@@ -87,23 +68,18 @@ setTimeout(function () {
                 return this.init(keyManager, [AllTrust.$new()], secureRandom);
             };
         } catch (e) {}
-
-        // 4. OkHttp Pinning Bypass
         try {
             Java.use("okhttp3.CertificatePinner").check.overload('java.lang.String', 'java.util.List').implementation = function (host, chain) {
                 console.log("[+] OkHttp pinning bypassed for " + host);
                 return;
             };
         } catch (e) {}
-
-        // 5. More Common Hooks
         try {
             Java.use("javax.net.ssl.HttpsURLConnection").setSSLSocketFactory.implementation = function (factory) {
                 console.log("[+] HttpsURLConnection setSSLSocketFactory bypassed");
                 return;
             };
         } catch (e) {}
-
         console.log("[+] All hooks applied. Force stop app and try login again.");
     });
 }, 0);

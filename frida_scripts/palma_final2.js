@@ -1,14 +1,5 @@
-// ================================================
-// VRUKSHA MICROFIN - FULL SSL BYPASS + ROOT BYPASS
-// Fixes: CertPathValidatorException, TrustManagerImpl,
-//        X509TrustManagerExtensions, all root checks
-// Run: frida -U -f com.vruksha.microfin -l vruksha_final.js --no-pause
-// ================================================
-
-// ── Pre-register shared AllTrust class ONCE globally ─────────────
 var _allTrustInstance = null;
 var _allVerifierInstance = null;
-
 function getAllTrust() {
     if (_allTrustInstance) return _allTrustInstance;
     var X509TrustManager = Java.use("javax.net.ssl.X509TrustManager");
@@ -26,7 +17,6 @@ function getAllTrust() {
     _allTrustInstance = AllTrust.$new();
     return _allTrustInstance;
 }
-
 function getAllVerifier() {
     if (_allVerifierInstance) return _allVerifierInstance;
     var HostnameVerifier = Java.use("javax.net.ssl.HostnameVerifier");
@@ -43,11 +33,8 @@ function getAllVerifier() {
     _allVerifierInstance = AllVerifier.$new();
     return _allVerifierInstance;
 }
-
 Java.perform(function () {
     console.log("[+] Vruksha Final Bypass Started");
-
-    // ── BLOCK 1: Build fingerprint spoof ─────────────────────────
     try {
         Java.use("android.os.Build").PRODUCT.value      = "gracerltexx";
         Java.use("android.os.Build").MANUFACTURER.value = "samsung";
@@ -60,8 +47,6 @@ Java.perform(function () {
         Java.use("android.os.Build").TAGS.value         = "release-keys";
         console.log("[+] Build fingerprint spoofed");
     } catch (e) { console.log("[-] Build spoof: " + e); }
-
-    // ── BLOCK 2: Generic integrity check hook ────────────────────
     try {
         var b3a = Java.use("b3.a");
         b3a.m.overload("android.content.Context").implementation = function (ctx) {
@@ -71,8 +56,6 @@ Java.perform(function () {
         try { b3a.m.overload().implementation = function () { return false; }; } catch(e) {}
         console.log("[+] b3.a.m() hooked");
     } catch (e) { console.log("[-] b3.a.m(): " + e); }
-
-    // ── BLOCK 3: RootBeer ────────────────────────────────────────
     try {
         var RootBeer = Java.use("com.scottyab.rootbeer.RootBeer");
         RootBeer.isRooted.implementation                        = function () { return false; };
@@ -85,8 +68,6 @@ Java.perform(function () {
         RootBeer.checkSuExists.implementation                   = function () { return false; };
         console.log("[+] RootBeer fully bypassed");
     } catch (e) { console.log("[-] RootBeer: " + e); }
-
-    // ── BLOCK 4: Firebase Crashlytics isRooted ───────────────────
     try {
         var CommonUtils = Java.use(
             "com.google.firebase.crashlytics.internal.common.CommonUtils"
@@ -97,8 +78,6 @@ Java.perform(function () {
         };
         console.log("[+] Crashlytics isRooted() hooked");
     } catch (e) { console.log("[-] Crashlytics CommonUtils: " + e); }
-
-    // ── BLOCK 5: USB Debugging / ADB check ───────────────────────
     try {
         var SecureSettings = Java.use("android.provider.Settings$Secure");
         SecureSettings.getInt.overload(
@@ -114,8 +93,6 @@ Java.perform(function () {
         };
         console.log("[+] USB debugging check bypassed");
     } catch (e) { console.log("[-] Settings.Secure: " + e); }
-
-    // ── BLOCK 6: System.exit() ───────────────────────────────────
     try {
         var System = Java.use("java.lang.System");
         System.exit.implementation = function (code) {
@@ -123,8 +100,6 @@ Java.perform(function () {
         };
         console.log("[+] System.exit() neutralized");
     } catch (e) { console.log("[-] System.exit: " + e); }
-
-    // ── BLOCK 7: finishAffinity ──────────────────────────────────
     try {
         var Activity = Java.use("android.app.Activity");
         Activity.finishAffinity.implementation = function () {
@@ -132,15 +107,11 @@ Java.perform(function () {
         };
         console.log("[+] finishAffinity() neutralized");
     } catch (e) { console.log("[-] finishAffinity: " + e); }
-
-    // ── BLOCK 8: MotionEvent flag bypass ─────────────────────────
     try {
         var MotionEvent = Java.use("android.view.MotionEvent");
         MotionEvent.getFlags.implementation = function () { return 0; };
         console.log("[+] MotionEvent.getFlags() bypassed");
     } catch (e) { console.log("[-] MotionEvent: " + e); }
-
-    // ── BLOCK 9: PackageManager — hide Magisk/Xposed ─────────────
     try {
         var PackageManager = Java.use("android.app.ApplicationPackageManager");
         PackageManager.getPackageInfo.overload(
@@ -163,8 +134,6 @@ Java.perform(function () {
         };
         console.log("[+] PackageManager spoofed");
     } catch (e) { console.log("[-] PackageManager: " + e); }
-
-    // ── BLOCK 10: File existence checks (su binary) ──────────────
     try {
         var File = Java.use("java.io.File");
         File.exists.implementation = function () {
@@ -181,17 +150,11 @@ Java.perform(function () {
         };
         console.log("[+] File.exists() su paths hidden");
     } catch (e) { console.log("[-] File.exists: " + e); }
-
     console.log("[+] All root/integrity hooks applied");
 });
-
-
-// ── SSL UNPINNING (delayed — after app initialises) ───────────────
 setTimeout(function () {
     Java.perform(function () {
         console.log("[+] Applying SSL Unpinning...");
-
-        // ── 1. SSLContext.init — inject AllTrust ─────────────────
         try {
             var SSLContext = Java.use("javax.net.ssl.SSLContext");
             SSLContext.init.overload(
@@ -204,18 +167,13 @@ setTimeout(function () {
             };
             console.log("[+] SSLContext.init hooked");
         } catch (e) { console.log("[-] SSLContext: " + e); }
-
-        // ── 2. Conscrypt TrustManagerImpl ────────────────────────
         try {
             var TrustManagerImpl = Java.use("com.android.org.conscrypt.TrustManagerImpl");
             var ArrayList = Java.use("java.util.ArrayList");
-
             TrustManagerImpl.checkTrustedRecursive.implementation = function () {
                 console.log("[+] checkTrustedRecursive bypassed");
                 return ArrayList.$new();
             };
-
-            // checkTrusted — main entry point for CertPathValidatorException
             try {
                 TrustManagerImpl.checkTrusted.overload(
                     '[Ljava.security.cert.X509Certificate;',
@@ -233,8 +191,6 @@ setTimeout(function () {
                     };
                 } catch(e2) { console.log("[-] checkTrusted fallback: " + e2); }
             }
-
-            // verifyChain
             try {
                 TrustManagerImpl.verifyChain.overload(
                     'java.util.List',
@@ -254,12 +210,8 @@ setTimeout(function () {
                     };
                 } catch(e2) {}
             }
-
             console.log("[+] Conscrypt TrustManagerImpl hooked");
         } catch (e) { console.log("[-] Conscrypt: " + e); }
-
-        // ── 3. X509TrustManagerExtensions — KEY FIX ──────────────
-        // This is what throws CertPathValidatorException
         try {
             var X509TME = Java.use("android.net.http.X509TrustManagerExtensions");
             X509TME.checkServerTrusted.overload(
@@ -272,8 +224,6 @@ setTimeout(function () {
             };
             console.log("[+] X509TrustManagerExtensions hooked");
         } catch (e) { console.log("[-] X509TrustManagerExtensions: " + e); }
-
-        // ── 4. OkHttp3 CertificatePinner ─────────────────────────
         try {
             var CertPinner = Java.use("okhttp3.CertificatePinner");
             CertPinner.check.overload("java.lang.String", "java.util.List")
@@ -286,8 +236,6 @@ setTimeout(function () {
                 };
             console.log("[+] OkHttp3 CertificatePinner hooked");
         } catch (e) { console.log("[-] OkHttp3: " + e); }
-
-        // ── 5. OkHttpClient Builder ───────────────────────────────
         try {
             var Builder = Java.use("okhttp3.OkHttpClient$Builder");
             Builder.build.implementation = function () {
@@ -300,8 +248,6 @@ setTimeout(function () {
             };
             console.log("[+] OkHttpClient builder pinning cleared");
         } catch (e) { console.log("[-] OkHttpClient builder: " + e); }
-
-        // ── 6. TrustManagerFactory — replace with AllTrust ───────
         try {
             var TrustManagerFactory = Java.use("javax.net.ssl.TrustManagerFactory");
             TrustManagerFactory.getTrustManagers.implementation = function () {
@@ -310,8 +256,6 @@ setTimeout(function () {
             };
             console.log("[+] TrustManagerFactory hooked");
         } catch (e) { console.log("[-] TrustManagerFactory: " + e); }
-
-        // ── 7. HttpsURLConnection HostnameVerifier ────────────────
         try {
             var HttpsURLConnection = Java.use("javax.net.ssl.HttpsURLConnection");
             HttpsURLConnection.setDefaultHostnameVerifier.implementation = function (hv) {
@@ -323,8 +267,6 @@ setTimeout(function () {
             };
             console.log("[+] HttpsURLConnection HostnameVerifier hooked");
         } catch (e) { console.log("[-] HttpsURLConnection: " + e); }
-
-        // ── 8. WebViewClient SSL errors ───────────────────────────
         try {
             var WebViewClient = Java.use("android.webkit.WebViewClient");
             WebViewClient.onReceivedSslError.implementation = function (wv, handler, err) {
@@ -333,8 +275,6 @@ setTimeout(function () {
             };
             console.log("[+] WebViewClient hooked");
         } catch (e) { console.log("[-] WebViewClient: " + e); }
-
-        // ── 9. Network Security Config override ───────────────────
         try {
             var NetworkSecurityTrustManager = Java.use(
                 "android.security.net.config.NetworkSecurityTrustManager"
@@ -344,8 +284,6 @@ setTimeout(function () {
             };
             console.log("[+] NetworkSecurityTrustManager hooked");
         } catch (e) { console.log("[-] NetworkSecurityTrustManager: " + e); }
-
-        // ── 10. RootTrustManager (Android internal) ───────────────
         try {
             var RootTrustManager = Java.use(
                 "android.security.net.config.RootTrustManager"
@@ -358,7 +296,6 @@ setTimeout(function () {
             };
             console.log("[+] RootTrustManager hooked");
         } catch (e) { console.log("[-] RootTrustManager: " + e); }
-
         console.log("[+] All SSL hooks applied");
         console.log("[!] Ensure device proxy → 10.0.2.2:8082");
     });

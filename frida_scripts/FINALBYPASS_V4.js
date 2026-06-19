@@ -1,6 +1,3 @@
-// ==============================
-// NATIVE ROOT FILE BYPASS
-// ==============================
 var fopen = Module.findExportByName("libc.so", "fopen");
 if (fopen) {
     Interceptor.attach(fopen, {
@@ -19,7 +16,6 @@ if (fopen) {
         }
     });
 }
-
 try {
     var sysprop = Module.findExportByName("libc.so", "__system_property_get");
     Interceptor.attach(sysprop, {
@@ -43,28 +39,19 @@ try {
         }
     });
 } catch(e) {}
-
-// ==============================
-// HOOK ALL SSL LIBRARIES
-// Targets: libssl.so, libflutter.so,
-// libpolarssl.so, libclib.so, libtmlib.so
-// ==============================
 function hookAllSSL() {
     var targets = [
         "libssl.so", "libflutter.so", "libpolarssl.so",
         "libclib.so", "libtmlib.so", "libsecurity.so",
         "libjavacrypto.so"
     ];
-
     var keywords = [
         "Hash", "LoginRequest", "SplashRequest",
         "JwtToken", "glproducts", "docker.mactech",
         "UserId", "Password", "responseCode"
     ];
-
     targets.forEach(function(lib) {
         try {
-            // SSL_write variants
             ["SSL_write", "ssl_write", "mbedtls_ssl_write",
              "ssl3_write", "tls1_write"].forEach(function(sym) {
                 try {
@@ -93,8 +80,6 @@ function hookAllSSL() {
                     }
                 } catch(e) {}
             });
-
-            // SSL_read variants
             ["SSL_read", "ssl_read", "mbedtls_ssl_read"].forEach(function(sym) {
                 try {
                     var addr = Module.findExportByName(lib, sym);
@@ -124,14 +109,8 @@ function hookAllSSL() {
             });
         } catch(e) {}
     });
-
     console.log("[+] All SSL libraries hooked!");
 }
-
-// ==============================
-// HOOK libclib.so DIRECTLY
-// Talsec's main RASP library
-// ==============================
 function hookLibclib() {
     try {
         var clib = Process.findModuleByName("libclib.so");
@@ -140,8 +119,6 @@ function hookLibclib() {
             return;
         }
         console.log("[+] libclib.so found at: " + clib.base);
-
-        // List all exports
         var exports = Module.enumerateExports("libclib.so");
         exports.forEach(function(e) {
             try {
@@ -155,14 +132,11 @@ function hookLibclib() {
                 }
             } catch(ex) {}
         });
-
-        // Hook ALL exports in libclib to find security checks
         exports.forEach(function(e) {
             try {
                 if (e.type === "function") {
                     Interceptor.attach(e.address, {
                         onLeave: function(retval) {
-                            // If returns 1/true (detected), change to 0/false
                             try {
                                 if (retval.toInt32() === 1) {
                                     retval.replace(0);
@@ -173,20 +147,13 @@ function hookLibclib() {
                 }
             } catch(ex) {}
         });
-
         console.log("[+] libclib.so all exports hooked!");
     } catch(e) {
         console.log("[-] libclib: " + e);
     }
 }
-
-// ==============================
-// ALL JAVA BYPASSES
-// ==============================
 setImmediate(function() {
     Java.perform(function() {
-
-        // Build props
         try {
             var Build = Java.use("android.os.Build");
             Build.PRODUCT.value      = "gracerltexx";
@@ -200,8 +167,6 @@ setImmediate(function() {
             Build.TYPE.value         = "user";
             console.log("[+] Build spoofed");
         } catch(e) {}
-
-        // File.exists
         try {
             var NativeFile = Java.use("java.io.File");
             NativeFile.exists.implementation = function() {
@@ -214,8 +179,6 @@ setImmediate(function() {
                 return this.exists();
             };
         } catch(e) {}
-
-        // Runtime.exec
         try {
             var exec1 = Java.use("java.lang.Runtime").exec.overload("java.lang.String");
             exec1.implementation = function(cmd) {
@@ -224,8 +187,6 @@ setImmediate(function() {
                 return exec1.call(this, cmd);
             };
         } catch(e) {}
-
-        // PackageManager
         try {
             var rootApps = ["com.topjohnwu.magisk","eu.chainfire.supersu","me.weishu.kernelsu"];
             var PM = Java.use("android.app.ApplicationPackageManager");
@@ -234,8 +195,6 @@ setImmediate(function() {
                 return this.getPackageInfo.overload("java.lang.String","int").call(this,p,f);
             };
         } catch(e) {}
-
-        // Block Talsec threat listener
         try {
             var ThreatListener = Java.use("com.aheaditec.talsec_security.security.api.ThreatListener");
             ThreatListener.threatDetected.implementation = function(threat) {
@@ -243,8 +202,6 @@ setImmediate(function() {
             };
             console.log("[+] ThreatListener blocked!");
         } catch(e) { console.log("[-] ThreatListener: " + e); }
-
-        // Block Talsec SDK start
         try {
             var TalsecApi = Java.use("com.aheaditec.talsec_security.security.api.Talsec");
             TalsecApi.start.overload(
@@ -254,32 +211,25 @@ setImmediate(function() {
                 console.log("[+] Blocked Talsec.start()!");
             };
         } catch(e) { console.log("[-] Talsec.start: " + e); }
-
-        // SSL Pinning Bypass
         try {
             var TrustManagerImpl = Java.use("com.android.org.conscrypt.TrustManagerImpl");
             TrustManagerImpl.verifyChain.implementation = function(a,b,c,d,e,f) { return a; };
             console.log("[+] TrustManagerImpl bypassed");
         } catch(e) {}
-
         try {
             var CertPinner = Java.use("okhttp3.CertificatePinner");
             CertPinner.check.overload("java.lang.String","java.util.List").implementation = function(h,c) {
                 console.log("[SSL] CertPinner bypassed: " + h);
             };
         } catch(e) {}
-
         try {
             var OpenSSL = Java.use("com.android.org.conscrypt.OpenSSLSocketImpl");
             OpenSSL.verifyCertificateChain.implementation = function(a,b) {};
         } catch(e) {}
-
         try {
             var WebViewClient = Java.use("android.webkit.WebViewClient");
             WebViewClient.onReceivedSslError.implementation = function(v,h,e) { h.proceed(); };
         } catch(e) {}
-
-        // Block DNS for Talsec
         try {
             var InetAddress = Java.use("java.net.InetAddress");
             InetAddress.getAllByName.implementation = function(host) {
@@ -290,14 +240,9 @@ setImmediate(function() {
                 return this.getAllByName(host);
             };
         } catch(e) {}
-
         console.log("[+] All Java hooks done.");
     });
 });
-
-// ==============================
-// TALSEC NATIVE BYPASS
-// ==============================
 function hookTalsec() {
     Java.perform(function() {
         try {
@@ -318,14 +263,11 @@ function hookTalsec() {
             TN.c.implementation  = function(a) { return false; };
             console.log("[+] Talsec Natives bypassed!");
         } catch(e) {}
-
         try { Java.use("S0.g").k.implementation = function(a,b) {}; } catch(e) {}
         try { Java.use("T0.Z").a.implementation = function() { return false; }; } catch(e) {}
     });
 }
 setTimeout(hookTalsec, 500);
-
-// App root checks
 function hookAppClasses() {
     Java.perform(function() {
         try {
@@ -345,7 +287,6 @@ function hookAppClasses() {
             });
             try { B.b.implementation = function(s) { return false; }; } catch(e) {}
         } catch(e) {}
-
         try {
             var C = Java.use("r2.C0922c");
             C.e.implementation = function(i,d) {
@@ -357,16 +298,10 @@ function hookAppClasses() {
                 return this.e(i,d);
             };
         } catch(e) {}
-
         console.log("[+] App root checks bypassed!");
     });
 }
 setTimeout(hookAppClasses, 1000);
-
-// Start SSL hooks after 2 seconds
 setTimeout(hookAllSSL, 2000);
-
-// Start libclib hooks after 3 seconds
 setTimeout(hookLibclib, 3000);
-
 console.log("[+] FINALBYPASS_V4 loaded!");

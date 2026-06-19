@@ -1,22 +1,7 @@
-/*
- * @name         emulator_detection_bypass
- * @bypass       Emulator Detection
- * @targets      Build properties, TelephonyManager, Sensor checks, IMEI/IMSI, AVD detection
- * @author       APKGraph Built-in
- * @frida_version >= 15.0
- * @description  Bypasses emulator/AVD detection. Spoofs Build properties,
- *               IMEI, IMSI, phone number, network operator, device fingerprint,
- *               and sensors that emulators lack.
- * @usage        frida -U -f com.target.app -l emulator_detection_bypass.js --no-pause
- */
-
 setTimeout(function() {
   Java.perform(function() {
     console.log("[APKGraph] Emulator Detection Bypass\n");
-
     var bypassed = [];
-
-    // ── 1. Build properties ────────────────────────────────────────────────
     var buildSpoof = {
       "FINGERPRINT":  "samsung/dreamltexx/dreamlte:9/PPR1.180610.011/G950FXXS5DSI2:user/release-keys",
       "MODEL":        "SM-G950F",
@@ -28,7 +13,6 @@ setTimeout(function() {
       "BOARD":        "SRPOB28A003KU",
       "HOST":         "SEP-132",
     };
-
     try {
       var Build = Java.use("android.os.Build");
       Object.keys(buildSpoof).forEach(function(field) {
@@ -42,8 +26,6 @@ setTimeout(function() {
       });
       bypassed.push("android.os.Build (FINGERPRINT, MODEL, MANUFACTURER...)");
     } catch(e) {}
-
-    // ── 2. TelephonyManager ────────────────────────────────────────────────
     try {
       var TelephonyManager = Java.use("android.telephony.TelephonyManager");
       TelephonyManager.getDeviceId.overload().implementation = function() {
@@ -66,8 +48,6 @@ setTimeout(function() {
       };
       bypassed.push("TelephonyManager (IMEI, IMSI, operator)");
     } catch(e) {}
-
-    // ── 3. NetworkInfo operator name ──────────────────────────────────────
     try {
       var WifiInfo = Java.use("android.net.wifi.WifiInfo");
       WifiInfo.getSSID.implementation = function() { return "\"HomeWifi\""; };
@@ -75,7 +55,6 @@ setTimeout(function() {
       WifiInfo.getMacAddress.implementation = function() { return "de:ad:be:ef:00:01"; };
       bypassed.push("WifiInfo (SSID, BSSID, MAC)");
     } catch(e) {}
-
     console.log("[APKGraph] Emulator Bypass complete:");
     bypassed.forEach(function(b) { console.log("  ✓ " + b); });
     console.log();
