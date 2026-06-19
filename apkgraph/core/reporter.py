@@ -640,6 +640,21 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                 )
                 evidence_str = str(evidence)[:150]
 
+                # Location / Path extraction
+                loc_parts = []
+                if item.get("file"): loc_parts.append(str(item.get("file")))
+                elif item.get("path"): loc_parts.append(str(item.get("path")))
+                
+                if item.get("class"): 
+                    cls = str(item.get("class"))
+                    if item.get("method"):
+                        cls += f" -> {item.get('method')}()"
+                    loc_parts.append(cls)
+                elif item.get("location"):
+                    loc_parts.append(str(item.get("location")))
+                    
+                loc_str = " | ".join(loc_parts)
+
                 # JWT special fields
                 claims_html = ""
                 if repro.get("claims"):
@@ -686,6 +701,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
       <dt>Severity</dt><dd><span class="badge badge-{sev}">{sev}</span></dd>
       {'<dt>CVSS Vector</dt><dd><span class="cvss">' + cvss + '</span></dd>' if cvss else ''}
       <dt>Impact</dt><dd>{self._esc(impact)}</dd>
+      {'<dt>Location</dt><dd><code style="background:#f1f1f1;padding:2px 5px;border-radius:3px;color:#d32f2f">' + self._esc(loc_str) + '</code></dd>' if loc_str else ''}
     </dl>
     {'<div class="poc-label">Evidence</div><div class="evidence-block">' + self._esc(evidence_str) + '</div>' if evidence_str else ''}
     {claims_html}
