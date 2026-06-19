@@ -86,3 +86,8 @@ report.md
 *.md
 !README.md
 !APKGraph Overview.pdf
+final_test*
+vruksha*
+scratch_sca.py
+*.zip
+new_folder2/

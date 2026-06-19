@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="apkgraph",
-    version="1.0.0",
+    version="2.0.0",
     packages=find_packages(),
     install_requires=[
-        "androguard",
-        "networkx",
-        "rich",
-        "click",
+        "androguard>=3.3.5",
+        "networkx>=3.0",
+        "rich>=13.0",
+        "click>=8.0",
         "pyyaml",
         "jsonschema",
         "lxml",
@@ -19,7 +19,7 @@ setup(
         ],
     },
     author="APKGraph Contributors",
-    description="Android Attack Surface Intelligence Platform",
+    description="APKGraph v2.0 — Android Attack Surface Intelligence Platform",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/username/apkgraph",

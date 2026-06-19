@@ -9,11 +9,10 @@ class JWTAnalyzer(BaseIntelligenceModule):
         self.jwt_pattern = r"ey[A-Za-z0-9-_=]+\.ey[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*"
 
     def analyze(self):
-        analysis = self.apk_data['analysis']
+        strings = self.apk_data.get('raw_strings', [])
         jwt_findings = []
 
-        for string_analysis in analysis.get_strings():
-            string = string_analysis.get_value()
+        for string in strings:
             matches = re.findall(self.jwt_pattern, string)
             for match in matches:
                 try:

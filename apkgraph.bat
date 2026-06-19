@@ -1,14 +1,45 @@
 @echo off
 setlocal
-if not exist "venv\Scripts\python.exe" (
-    echo [!] Error: Virtual environment not found.
-    echo [!] Please run: 
-    echo     python -m venv venv
-    echo     .\venv\Scripts\pip install -r requirements.txt
-    echo     .\venv\Scripts\pip install .
+
+:: Check if Python is installed
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [!] Python is not installed or not in your PATH.
+    echo [!] Please install Python 3.8+ and try again.
+    pause
     exit /b 1
 )
 
+:: Check if virtual environment exists
+if not exist "venv\Scripts\python.exe" (
+    echo [*] First time setup: Creating Python virtual environment...
+    python -m venv venv
+    if %errorlevel% neq 0 (
+        echo [!] Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
+    
+    echo [*] Installing requirements...
+    call venv\Scripts\python.exe -m pip install --upgrade pip
+    call venv\Scripts\pip.exe install -r requirements.txt
+    call venv\Scripts\pip.exe install .
+    
+    echo [*] Checking for optional tools ^(Frida, YARA^)...
+    call venv\Scripts\pip.exe install frida-tools yara-python
+    
+    echo [+] Setup complete!
+    echo ----------------------------------------------------
+)
+
+:: Run the tool
 set PYTHONPATH=%PYTHONPATH%;%CD%
-venv\Scripts\python.exe -m apkgraph.apkgraph %*
+call venv\Scripts\python.exe -m apkgraph.apkgraph %*
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [!] APKGraph exited with an error. 
+    echo [!] Try running "apkgraph.bat --help" for usage information.
+)
+
 endlocal
