@@ -391,12 +391,9 @@ tr:last-child td{{border-bottom:none}}
     <div class="card"><div class="card-num">{endpoint_count}</div><div class="card-label">Endpoints</div></div>
     <div class="card"><div class="card-num">{icc_count}</div><div class="card-label">ICC Flows</div></div>
     <div class="card"><div class="card-num">{len(paths)}</div><div class="card-label">Attack Paths</div></div>
-    <div class="card" style="border-color:var(--accent)"><div class="card-num" style="color:var(--accent)">{len(bypass_recs)}</div><div class="card-label">Bypasses</div></div>
+    <div class="card" style="border-color:var(--accent)"><div class="card-num" style="color:var(--accent)">{len(findings.get('FridaHookAnalysis', {}).get('hooked_scripts_matched', []))}</div><div class="card-label">Verified Hooks</div></div>
   </div>
 
-  <h2>💉 Frida Bypass Recommender</h2>
-  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
-    {bypass_html}
   </div>
 
   {frida_hook_html}
