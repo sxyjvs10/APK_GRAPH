@@ -650,8 +650,18 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                     if item.get("method"):
                         cls += f" -> {item.get('method')}()"
                     loc_parts.append(cls)
+                elif item.get("locations"):
+                    locs = item.get("locations")
+                    if isinstance(locs, list) and len(locs) > 0:
+                        loc_parts.append(str(locs[0]))
+                    else:
+                        loc_parts.append(str(locs))
                 elif item.get("location"):
-                    loc_parts.append(str(item.get("location")))
+                    loc = item.get("location")
+                    if isinstance(loc, list) and len(loc) > 0:
+                        loc_parts.append(str(loc[0]))
+                    else:
+                        loc_parts.append(str(loc))
                     
                 loc_str = " | ".join(loc_parts)
 
