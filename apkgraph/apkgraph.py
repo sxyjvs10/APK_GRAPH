@@ -285,8 +285,10 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
                 
         # ── Final Report Link ───────────────────────────────────────────────────
         if fmt in ("html", "all"):
+            import pathlib
             abs_path = os.path.abspath(f"{output}.html")
-            console.print(f"\n[bold green]🔗 HTML Report available at:[/] [underline cyan]file://{abs_path}[/]\n")
+            uri = pathlib.Path(abs_path).as_uri()
+            console.print(f"\n[bold green]🔗 HTML Report available at:[/] [underline cyan]{uri}[/]\n")
 
     except Exception as e:
         console.print(f"\n[bold red]✖ Analysis failed: {str(e)}[/]")
