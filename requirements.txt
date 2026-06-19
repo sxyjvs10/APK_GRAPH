@@ -1,5 +1,5 @@
 androguard
-networkx
+networkx==3.1
 rich
 click
 pyyaml
