@@ -409,7 +409,24 @@ tr:last-child td{{border-bottom:none}}
   <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">
     Interactive visualization of all vulnerabilities and their paths throughout the application. Drag nodes to explore.
   </p>
-  <div id="kg-network" style="width:100%;height:500px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:2rem;"></div>
+  <div class="kg-controls" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <input type="text" id="kg-search" placeholder="Search class or vuln..." style="padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); min-width: 200px;">
+    <button id="kg-search-btn" style="padding: 6px 12px; cursor: pointer; background: var(--accent); color: var(--bg); border: none; border-radius: 4px; font-weight: bold;">Search</button>
+    
+    <div style="border-left: 1px solid var(--border); height: 20px; margin: 0 5px;"></div>
+    
+    <label style="font-size: 0.9rem; cursor: pointer;"><input type="checkbox" id="filter-critical"> High/Critical Only</label>
+    <label style="font-size: 0.9rem; cursor: pointer;"><input type="checkbox" id="filter-packages" checked> Show Packages</label>
+    <span style="font-size: 0.8rem; color: var(--muted); margin-left: auto;">💡 Double-click a package to collapse/expand its children</span>
+  </div>
+
+  <div style="display: flex; gap: 10px; margin-bottom:2rem; height:600px;">
+    <div id="kg-network" style="flex: 3; background:var(--card2); border:1px solid var(--border); border-radius:var(--radius);"></div>
+    <div id="kg-panel" style="flex: 1; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding: 15px; display: none; overflow-y: auto;">
+      <h3 id="kg-panel-title" style="margin-top:0; color:var(--accent); font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Node Info</h3>
+      <div id="kg-panel-content" style="font-size: 0.85rem; word-break: break-all; color: var(--fg); line-height: 1.5;"></div>
+    </div>
+  </div>
 
   <script>
     // Safely decode the base64 JSON payload to prevent script injection crashes
@@ -442,13 +459,16 @@ tr:last-child td{{border-bottom:none}}
     }}));
 
     const edges = new vis.DataSet(rawLinks.map(l => {{
+      let isCrossModule = ["may_authenticate_to", "may_invoke", "may_authorize", "may_inject_via"].includes(l.relation);
       return {{
         from: l.source,
         to: l.target,
         label: l.relation || "",
         arrows: 'to',
-        font: {{ size: 10, color: '#8b949e', align: 'top' }},
-        color: {{ color: '#30363d', highlight: '#58a6ff' }}
+        dashes: isCrossModule,
+        width: isCrossModule ? 2 : 1,
+        font: {{ size: 10, color: isCrossModule ? '#f85149' : '#8b949e', align: 'top' }},
+        color: {{ color: isCrossModule ? '#f85149' : '#30363d', highlight: '#58a6ff' }}
       }};
     }}));
 
@@ -469,7 +489,86 @@ tr:last-child td{{border-bottom:none}}
       edges: {{ smooth: {{ type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.4 }} }},
       interaction: {{ hover: true, tooltipDelay: 200, zoomView: true, dragNodes: true }}
     }};
-    new vis.Network(container, data, options);
+    const network = new vis.Network(container, data, options);
+    
+    // Feature 1: Interactive Node Click
+    network.on("click", function (params) {{
+      if (params.nodes.length > 0) {{
+        const nodeId = params.nodes[0];
+        const nodeData = nodes.get(nodeId);
+        document.getElementById('kg-panel').style.display = 'block';
+        document.getElementById('kg-panel-title').innerText = nodeData.type || "Node";
+        let content = "<strong>Label:</strong> " + (nodeData.label || "").replace(/\\n/g, ' ') + "<br><br>";
+        if (nodeData.title) {{ content += nodeData.title.replace(/\\n/g, '<br>'); }}
+        document.getElementById('kg-panel-content').innerHTML = content;
+      }} else {{
+        document.getElementById('kg-panel').style.display = 'none';
+      }}
+    }});
+
+    // Feature 2: Double Click to Collapse
+    network.on("doubleClick", function (params) {{
+      if (params.nodes.length === 1) {{
+        const nodeId = params.nodes[0];
+        const nodeData = nodes.get(nodeId);
+        if (nodeData.type === 'Package' || nodeData.type === 'Class' || nodeData.type === 'Application') {{
+           let isCollapsed = nodeData.collapsed || false;
+           function getDescendants(id) {{
+             let desc = [];
+             edges.get({{filter: e => e.from === id}}).forEach(e => {{
+               desc.push(e.to);
+               desc = desc.concat(getDescendants(e.to));
+             }});
+             return desc;
+           }}
+           let children = getDescendants(nodeId);
+           let updates = [];
+           children.forEach(c => updates.push({{id: c, hidden: !isCollapsed}}) );
+           nodes.update(updates);
+           nodes.update({{id: nodeId, collapsed: !isCollapsed, font: {{color: !isCollapsed ? '#f85149' : (nodeData.type === 'Class' ? '#24292e' : '#e6edf3')}}}});
+        }}
+      }}
+    }});
+
+    // Feature 3: Search Bar
+    document.getElementById('kg-search-btn').addEventListener('click', () => {{
+      const q = document.getElementById('kg-search').value.toLowerCase();
+      if (!q) return;
+      const matchedNodes = nodes.get({{
+          filter: function(item) {{
+              return (item.label && item.label.toLowerCase().includes(q)) || 
+                     (item.title && item.title.toLowerCase().includes(q));
+          }}
+      }});
+      if (matchedNodes.length > 0) {{
+        network.focus(matchedNodes[0].id, {{ scale: 1.2, animation: true }});
+        network.selectNodes([matchedNodes[0].id]);
+        network.emit("click", {{nodes: [matchedNodes[0].id]}});
+      }}
+    }});
+
+    // Feature 4: Filters
+    function applyFilters() {{
+      const hideLow = document.getElementById('filter-critical').checked;
+      const hidePkgs = !document.getElementById('filter-packages').checked;
+      let updates = [];
+      nodes.forEach(n => {{
+         let hidden = false;
+         if (hidePkgs && (n.type === 'Package' || n.type === 'Class' || n.type === 'Application')) {{
+             hidden = true;
+         }}
+         if (hideLow && ["Secret", "Endpoint", "DeepLink", "WebView", "SSLPinning", "RootDetection", "IntentHijack"].includes(n.type)) {{
+            let isCrit = n.title && (n.title.includes('High') || n.title.includes('Critical'));
+            if (!isCrit) hidden = true;
+         }}
+         updates.push({{id: n.id, hidden: hidden}});
+      }});
+      nodes.update(updates);
+    }}
+    
+    document.getElementById('filter-critical').addEventListener('change', applyFilters);
+    document.getElementById('filter-packages').addEventListener('change', applyFilters);
+
   </script>
 
   {frida_hook_html}
