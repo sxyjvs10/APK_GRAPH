@@ -1,0 +1,86 @@
+- id: openai-api-key
+  info:
+    name: OpenAI API Key Leak
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects hardcoded OpenAI API keys (often leaked in AI wrapper apps).
+  patterns:
+    - 'sk-[a-zA-Z0-9]{48}'
+    - 'sk-proj-[a-zA-Z0-9_-]{48}'
+
+- id: anthropic-api-key
+  info:
+    name: Anthropic / Claude API Key Leak
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects hardcoded Anthropic API keys.
+  patterns:
+    - 'sk-ant-[a-zA-Z0-9_-]{86}'
+
+- id: supabase-anon-key
+  info:
+    name: Supabase Anon/Service Role Key
+    author: APKGraph Advanced
+    severity: high
+    description: Detects hardcoded Supabase JWT keys (Anon or Service Role). Service role keys allow full database access.
+  patterns:
+    - 'ey[A-Za-z0-9-_]+\.ey[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+' # JWT context
+    - '(?i)supabase.*ey[A-Za-z0-9-_=]+\.ey[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*'
+
+- id: expo-access-token
+  info:
+    name: Expo Access Token (React Native)
+    author: APKGraph Advanced
+    severity: high
+    description: Detects Expo access tokens, which can allow attackers to hijack OTA updates in React Native applications.
+  patterns:
+    - '(?i)expo.*[a-z0-9_-]{28}'
+    - '(?i)EXPO_TOKEN.*[a-z0-9_-]{28}'
+
+- id: dev-deeplink-schema
+  info:
+    name: Hidden Development / Bypass Deep Link
+    author: APKGraph Advanced
+    severity: medium
+    description: Detects hardcoded deep links intended for development, testing, or bypassing authentication.
+  patterns:
+    - '(?i)[a-z]+://(?:bypass|dev|test|admin|debug|staging)[-a-z0-9/]*'
+    - '(?i)intent://(?:bypass|dev|test|admin|debug)'
+
+- id: gitlab-runner-token
+  info:
+    name: GitLab CI/CD Runner Token
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects GitLab CI/CD Runner registration tokens accidentally bundled into the APK during the build process.
+  patterns:
+    - 'GR1348941[a-zA-Z0-9_-]{20}'
+    - 'glrt-[a-zA-Z0-9_-]{20}'
+
+- id: huggingface-access-token
+  info:
+    name: HuggingFace Access Token
+    author: APKGraph Advanced
+    severity: high
+    description: Detects HuggingFace access tokens used to access private models or datasets.
+  patterns:
+    - 'hf_[a-zA-Z0-9]{34}'
+
+- id: slack-webhook-url
+  info:
+    name: Slack Webhook Leak
+    author: APKGraph Advanced
+    severity: medium
+    description: Detects Slack Webhook URLs used for internal app error reporting, allowing attackers to spam internal channels.
+  patterns:
+    - 'https://hooks\.slack\.com/services/T[a-zA-Z0-9_]{8}/B[a-zA-Z0-9_]{8}/[a-zA-Z0-9_]{24}'
+
+- id: ngrok-tunnels
+  info:
+    name: Localhost / Ngrok Tunnel Leak
+    author: APKGraph Advanced
+    severity: low
+    description: Detects hardcoded Ngrok or local tunnel URLs indicating the app is pointing to a developer's local machine instead of production.
+  patterns:
+    - 'https://[a-z0-9-]+\.ngrok-free\.app'
+    - 'https://[a-z0-9-]+\.ngrok\.io'
