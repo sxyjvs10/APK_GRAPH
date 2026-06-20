@@ -1,0 +1,78 @@
+- id: stripe-secret-key
+  info:
+    name: Stripe Secret Key (Live)
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects live Stripe Secret Keys. If hardcoded in a mobile app, this allows attackers to issue refunds, access customer data, and create fraudulent charges.
+  patterns:
+    - 'sk_live_[0-9a-zA-Z]{24,34}'
+    - 'rk_live_[0-9a-zA-Z]{24,34}'
+
+- id: discord-webhook
+  info:
+    name: Discord Webhook URL
+    author: APKGraph Advanced
+    severity: medium
+    description: Detects Discord webhooks often used by developers for internal crash reporting. Attackers can spam these or use them for C2 communication.
+  patterns:
+    - 'https://discord(?:app)?\.com/api/webhooks/[0-9]{17,19}/[a-zA-Z0-9_-]{68}'
+
+- id: weak-crypto-iv-key
+  info:
+    name: Weak/Hardcoded Cryptographic Key or IV
+    author: APKGraph Advanced
+    severity: high
+    description: Detects commonly used, weak, or placeholder cryptographic Initialization Vectors (IVs) and AES keys.
+  patterns:
+    - '(?i)(?:0123456789abcdef|1234567890123456|abcdefghijklmnopqrstuvwxyz)'
+    - '(?i)password12345678'
+    - '(?i)encryption_key'
+
+- id: internal-ipv4-address
+  info:
+    name: Internal IPv4 Address Exposure
+    author: APKGraph Advanced
+    severity: low
+    description: Detects hardcoded internal/private IPv4 addresses, which can reveal backend architecture and routing.
+  patterns:
+    - '(?i)(?:http://|https://)?10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+    - '(?i)(?:http://|https://)?192\.168\.[0-9]{1,3}\.[0-9]{1,3}'
+    - '(?i)(?:http://|https://)?172\.(?:1[6-9]|2[0-9]|3[0-1])\.[0-9]{1,3}\.[0-9]{1,3}'
+
+- id: hardcoded-basic-auth
+  info:
+    name: Hardcoded Basic Authentication
+    author: APKGraph Advanced
+    severity: high
+    description: Detects hardcoded Basic Auth headers (base64 encoded username:password format) often used for legacy APIs.
+  patterns:
+    - '(?i)Authorization:\s+Basic\s+[a-zA-Z0-9+/=]{10,}'
+    - '(?i)Basic\s+[a-zA-Z0-9+/=]{10,}'
+
+- id: mapbox-public-token
+  info:
+    name: Mapbox Public Token
+    author: APKGraph Advanced
+    severity: low
+    description: Detects Mapbox public tokens. While meant to be public, they should be reviewed for proper URL restrictions to prevent quota theft.
+  patterns:
+    - 'pk\.eyJ1Ijoi[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+'
+
+- id: sendgrid-api-key
+  info:
+    name: SendGrid API Key
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects SendGrid API keys, allowing attackers to send spoofed phishing emails originating from the victim company's official domain.
+  patterns:
+    - 'SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43}'
+
+- id: github-personal-access-token
+  info:
+    name: GitHub Classic/Fine-Grained Token
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects hardcoded GitHub personal access tokens (classic and fine-grained formats).
+  patterns:
+    - 'ghp_[a-zA-Z0-9]{36}'
+    - 'github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}'
