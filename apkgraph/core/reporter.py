@@ -818,10 +818,41 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             ("ICC",         " Cross-Component Taint Flows",     lambda d: d if isinstance(d, list) else []),
         ]
 
+        def sev_rank(s):
+            s = str(s).lower()
+            if 'critical' in s: return 4
+            if 'high' in s: return 3
+            if 'medium' in s: return 2
+            if 'low' in s or 'info' in s: return 1
+            return 0
+            
+        def get_sev(item):
+            return item.get("confidence") or item.get("risk") or item.get("severity") or "Medium"
+
+        populated_sections = []
         for key, section_title, extractor in sections:
             items = extractor(enriched.get(key) or [])
             if not items:
                 continue
+                
+            # Sort items within this section by severity (Critical first)
+            items = sorted(items, key=lambda x: sev_rank(get_sev(x)), reverse=True)
+            max_sev = sev_rank(get_sev(items[0])) if items else 0
+            
+            populated_sections.append({
+                "key": key,
+                "title": section_title,
+                "items": items,
+                "max_sev": max_sev
+            })
+            
+        # Sort sections by their highest severity finding (Critical sections at top of report)
+        populated_sections.sort(key=lambda s: s["max_sev"], reverse=True)
+
+        for sec in populated_sections:
+            key = sec["key"]
+            section_title = sec["title"]
+            items = sec["items"]
 
             html += f'<h3>{section_title}</h3>'
             shown = 0
@@ -836,7 +867,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                 counter += 1
                 shown   += 1
 
-                sev    = item.get("confidence") or item.get("risk") or item.get("severity") or "Medium"
+                sev = get_sev(item)
                 
                 # Fallback extraction for items without reproduction blocks
                 threat = repro.get("threat") or item.get("vulnerability") or item.get("type") or item.get("description") or "Security Finding"
