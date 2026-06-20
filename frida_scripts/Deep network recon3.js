@@ -1,9 +1,56 @@
 'use strict';
+
+// ====================================================================
+// MASTER BYPASS — com.Macom.emicollection
+// Single script — root detection + SSL pinning combined
+//
+// GATE 1 — MainActivity.onCreate()
+//   SecurityUtils.isEmulator() / hasEmulatorFiles()
+//   showSecurityErrorAndExit() suppressed
+//   dispatchTouchEvent() bypassed
+//
+// GATE 2 — LoginFragment
+//   isFridaDetected() + all 5 sub-checks
+//   isEmulator() / isDebuggerAttached()
+//   RootBeer (o31) — all boolean methods → false
+//   All show*Dialog() suppressed
+//
+// LOW-LEVEL FALLBACKS
+//   File.exists()         → hides frida + root paths
+//   System.getenv()       → nulls FRIDA_HOME
+//   Thread.getName()      → spoofs frida/gum-js-loop names
+//   BufferedReader        → strips Frida port from /proc/net/tcp
+//   qc1 string helper     → blocks frida keyword searches
+//   Debug.isDebuggerConnected() → false
+//   Build fields          → spoofed to Samsung Galaxy S10
+//   FLAG_SECURE           → stripped
+//
+// SSL PINNING — targets exact classes confirmed loaded by enumeration:
+//   com.android.okhttp.CertificatePinner          → check() no-op
+//   com.android.org.conscrypt.TrustManagerImpl    → verifyChain() bypassed
+//   android.security.net.config.NetworkSecurityTrustManager → bypassed
+//   android.security.net.config.RootTrustManager  → bypassed
+//   com.android.okhttp.internal.tls.OkHostnameVerifier → verify() → true
+//   com.android.org.conscrypt.OkHostnameVerifier  → verify() → true
+//   com.android.org.conscrypt.ConscryptHostnameVerifier → verify() → true
+//   SSLContext.init()     → permissive TrustManager injected
+//   X509TrustManager heap scan
+//   X509ExtendedTrustManager heap scan
+//   HostnameVerifier heap scan
+//   SSLPeerUnverifiedException → suppressed
+// ====================================================================
+
 Java.perform(function () {
+
     function safeHook(tag, fn) {
         try { fn(); console.log('[+] ' + tag); }
         catch (e) { console.log('[-] ' + tag + ': ' + e); }
     }
+
+    // ════════════════════════════════════════════════════════════════
+    // SECTION 1 — GATE 1: MainActivity
+    // ════════════════════════════════════════════════════════════════
+
     safeHook('SecurityUtils.isEmulator()', function () {
         var SU = Java.use('com.Macom.emicollection.app.common.SecurityUtils');
         SU.isEmulator.implementation = function () {
@@ -11,6 +58,7 @@ Java.perform(function () {
             return false;
         };
     });
+
     safeHook('SecurityUtils.hasEmulatorFiles()', function () {
         var SU = Java.use('com.Macom.emicollection.app.common.SecurityUtils');
         SU.hasEmulatorFiles.implementation = function () {
@@ -18,12 +66,14 @@ Java.perform(function () {
             return false;
         };
     });
+
     safeHook('MainActivity.showSecurityErrorAndExit()', function () {
         var MA = Java.use('com.Macom.emicollection.MainActivity');
         MA.showSecurityErrorAndExit.implementation = function (title, msg) {
             console.log('[!] showSecurityErrorAndExit() suppressed: ' + title);
         };
     });
+
     safeHook('MainActivity.dispatchTouchEvent()', function () {
         var MA  = Java.use('com.Macom.emicollection.MainActivity');
         var ACA = Java.use('androidx.appcompat.app.AppCompatActivity');
@@ -33,6 +83,7 @@ Java.perform(function () {
                 return ACA.dispatchTouchEvent.call(this, ev);
             };
     });
+
     safeHook('FLAG_SECURE strip', function () {
         var Window = Java.use('android.view.Window');
         Window.setFlags.implementation = function (flags, mask) {
@@ -40,6 +91,11 @@ Java.perform(function () {
         };
         try { Window.setHideOverlayWindows.implementation = function () {}; } catch (_) {}
     });
+
+    // ════════════════════════════════════════════════════════════════
+    // SECTION 2 — GATE 2: LoginFragment
+    // ════════════════════════════════════════════════════════════════
+
     safeHook('LoginFragment.isFridaDetected()', function () {
         var LF = Java.use('com.Macom.emicollection.content.login.presentation.LoginFragment');
         LF.isFridaDetected.implementation = function () {
@@ -47,6 +103,7 @@ Java.perform(function () {
             return false;
         };
     });
+
     safeHook('LoginFragment sub-checks', function () {
         var LF = Java.use('com.Macom.emicollection.content.login.presentation.LoginFragment');
         LF.detectFridaFiles.implementation       = function () { return false; };
@@ -57,6 +114,7 @@ Java.perform(function () {
         LF.isEmulator.implementation             = function () { return false; };
         LF.isDebuggerAttached.implementation     = function () { return false; };
     });
+
     safeHook('LoginFragment dialog suppressors', function () {
         var LF = Java.use('com.Macom.emicollection.content.login.presentation.LoginFragment');
         LF.showFridaDetectionDialog.implementation = function () {
@@ -72,6 +130,7 @@ Java.perform(function () {
             console.log('[!] showSecurityDialog() suppressed: ' + msg);
         };
     });
+
     safeHook('RootBeer o31', function () {
         var RB = Java.use('com.Macom.emicollection.o31');
         RB.class.getDeclaredMethods().forEach(function (m) {
@@ -88,10 +147,16 @@ Java.perform(function () {
             }
         });
     });
+
+    // ════════════════════════════════════════════════════════════════
+    // SECTION 3 — LOW-LEVEL FALLBACKS
+    // ════════════════════════════════════════════════════════════════
+
     safeHook('Debug.isDebuggerConnected()', function () {
         Java.use('android.os.Debug')
             .isDebuggerConnected.implementation = function () { return false; };
     });
+
     safeHook('File.exists()', function () {
         var BLOCKED = [
             '/data/local/tmp/frida-server',
@@ -113,6 +178,7 @@ Java.perform(function () {
             return this.exists();
         };
     });
+
     safeHook('System.getenv()', function () {
         Java.use('java.lang.System')
             .getenv.overload('java.lang.String')
@@ -124,6 +190,7 @@ Java.perform(function () {
                 return this.getenv(key);
             };
     });
+
     safeHook('Thread.getName() spoof', function () {
         Java.use('java.lang.Thread').getName.implementation = function () {
             var name = this.getName();
@@ -137,6 +204,7 @@ Java.perform(function () {
             return name;
         };
     });
+
     safeHook('BufferedReader.readLine() — Frida port filter', function () {
         Java.use('java.io.BufferedReader')
             .readLine.overload()
@@ -149,6 +217,7 @@ Java.perform(function () {
                 return line;
             };
     });
+
     safeHook('qc1 string helper', function () {
         var FRIDA_NEEDLES = ['frida', 'gum-js-loop', ':5D8A', '5D8A', 'gmain', 'FRIDA'];
         Java.use('com.Macom.emicollection.qc1')
@@ -176,6 +245,7 @@ Java.perform(function () {
                 } catch (_) {}
             });
     });
+
     safeHook('Build fields spoof', function () {
         var B = Java.use('android.os.Build');
         B.BRAND.value        = 'samsung';
@@ -189,18 +259,29 @@ Java.perform(function () {
         B.TAGS.value         = 'release-keys';
         B.TYPE.value         = 'user';
     });
+
+    // ════════════════════════════════════════════════════════════════
+    // SECTION 4 — SSL PINNING BYPASS
+    // All classes confirmed present via Java.enumerateLoadedClassesSync()
+    // ════════════════════════════════════════════════════════════════
+
+    // 4a. com.android.okhttp.CertificatePinner
+    //     THE primary cert pinner in this app — check() throws when pins mismatch
     safeHook('com.android.okhttp.CertificatePinner.check()', function () {
         var CP = Java.use('com.android.okhttp.CertificatePinner');
+
         CP.check.overload('java.lang.String', 'java.util.List')
             .implementation = function (hostname, certs) {
                 console.log('[*] CertificatePinner.check(' + hostname + ') → bypassed');
             };
+
         try {
             CP.check.overload('java.lang.String', '[Ljava.security.cert.Certificate;')
                 .implementation = function (hostname, certs) {
                     console.log('[*] CertificatePinner.check[](' + hostname + ') → bypassed');
                 };
         } catch (_) {}
+
         try {
             CP.check.overload('java.lang.String')
                 .implementation = function (hostname) {
@@ -208,6 +289,14 @@ Java.perform(function () {
                 };
         } catch (_) {}
     });
+
+    // 4a2. okhttp3.CertificatePinner — lazy-loaded, not present at startup
+    //      Recon showed it's NOT shaded under com.Macom namespace.
+    //      It loads lazily when the first HTTP call is made.
+    //      Strategy: hook ClassLoader to intercept it the moment it loads,
+    //      AND try direct hook (works if it loads before Java.perform completes).
+
+    // Direct hook attempt (works if already loaded by login time)
     safeHook('okhttp3.CertificatePinner direct', function () {
         var CP = Java.use('okhttp3.CertificatePinner');
         CP.check.overloads.forEach(function (ovl) {
@@ -215,6 +304,7 @@ Java.perform(function () {
                 console.log('[*] okhttp3.CertificatePinner.check() → bypassed');
             };
         });
+        // Also hook check$okhttp on newer okhttp3 versions
         try {
             CP['check$okhttp'].overloads.forEach(function (ovl) {
                 ovl.implementation = function () {
@@ -223,6 +313,8 @@ Java.perform(function () {
             });
         } catch (_) {}
     });
+
+    // ClassLoader hook — fires the instant okhttp3.CertificatePinner is loaded
     safeHook('ClassLoader hook for okhttp3.CertificatePinner', function () {
         var ClassLoader = Java.use('java.lang.ClassLoader');
         ClassLoader.loadClass.overload('java.lang.String').implementation = function (name) {
@@ -243,6 +335,10 @@ Java.perform(function () {
             return clazz;
         };
     });
+
+    // SSLException message hook — "Certificate pinning failure!" originates here.
+    // The exception is constructed in CertificatePinner.check() with this exact string.
+    // By intercepting the IOException that wraps it, we prevent it reaching Retrofit.
     safeHook('SSLPinningException via IOException constructor', function () {
         var IOException = Java.use('java.io.IOException');
         IOException.$init.overload('java.lang.String').implementation = function (msg) {
@@ -253,6 +349,8 @@ Java.perform(function () {
             }
             this.$init(msg);
         };
+
+        // Also catch it as a plain RuntimeException (okhttp3 wraps differently per version)
         var RuntimeException = Java.use('java.lang.RuntimeException');
         RuntimeException.$init.overload('java.lang.String').implementation = function (msg) {
             if (msg && msg.indexOf('Certificate pinning failure') !== -1) {
@@ -263,6 +361,9 @@ Java.perform(function () {
             this.$init(msg);
         };
     });
+
+    // 4b. com.android.org.conscrypt.TrustManagerImpl
+    //     Handles X.509 chain validation — source of CERTIFICATE_VERIFY_FAILED
     safeHook('conscrypt.TrustManagerImpl.verifyChain()', function () {
         Java.use('com.android.org.conscrypt.TrustManagerImpl')
             .verifyChain.implementation = function (
@@ -272,6 +373,7 @@ Java.perform(function () {
                 return untrustedChain;
             };
     });
+
     safeHook('conscrypt.TrustManagerImpl checkTrusted methods', function () {
         var TMI = Java.use('com.android.org.conscrypt.TrustManagerImpl');
         TMI.class.getDeclaredMethods().forEach(function (m) {
@@ -291,17 +393,23 @@ Java.perform(function () {
             }
         });
     });
+
+    // 4c. android.security.net.config.NetworkSecurityTrustManager
+    //     Android 7+ — enforces pins from network_security_config.xml
     safeHook('NetworkSecurityTrustManager', function () {
         var NSTM = Java.use('android.security.net.config.NetworkSecurityTrustManager');
+
         NSTM.checkServerTrusted.overloads.forEach(function (ovl) {
             ovl.implementation = function () {
                 console.log('[*] NetworkSecurityTrustManager.checkServerTrusted() → bypassed');
+                // Some overloads return List<X509Certificate> — must return empty list not void
                 var retType = ovl.returnType ? ovl.returnType.className : 'void';
                 if (retType !== 'void') {
                     return Java.use('java.util.ArrayList').$new();
                 }
             };
         });
+
         try {
             NSTM.checkPins.overloads.forEach(function (ovl) {
                 ovl.implementation = function () {
@@ -310,6 +418,10 @@ Java.perform(function () {
             });
         } catch (_) {}
     });
+
+    // 4d. android.security.net.config.RootTrustManager
+    //     HAS a List-returning overload: checkServerTrusted(chain, authType, host) → List
+    //     Returning void from it causes: "expected return value compatible with java.util.List"
     safeHook('RootTrustManager', function () {
         var RTM = Java.use('android.security.net.config.RootTrustManager');
         RTM.checkServerTrusted.overloads.forEach(function (ovl) {
@@ -322,6 +434,8 @@ Java.perform(function () {
             };
         });
     });
+
+    // 4e. com.android.okhttp.internal.tls.OkHostnameVerifier
     safeHook('com.android.okhttp.OkHostnameVerifier', function () {
         var HV = Java.use('com.android.okhttp.internal.tls.OkHostnameVerifier');
         HV.verify.overloads.forEach(function (ovl) {
@@ -333,6 +447,8 @@ Java.perform(function () {
             };
         });
     });
+
+    // 4f. com.android.org.conscrypt.OkHostnameVerifier
     safeHook('conscrypt.OkHostnameVerifier', function () {
         var HV = Java.use('com.android.org.conscrypt.OkHostnameVerifier');
         HV.verify.overloads.forEach(function (ovl) {
@@ -344,6 +460,8 @@ Java.perform(function () {
             };
         });
     });
+
+    // 4g. com.android.org.conscrypt.ConscryptHostnameVerifier
     safeHook('conscrypt.ConscryptHostnameVerifier', function () {
         var HV = Java.use('com.android.org.conscrypt.ConscryptHostnameVerifier');
         HV.verify.overloads.forEach(function (ovl) {
@@ -355,6 +473,8 @@ Java.perform(function () {
             };
         });
     });
+
+    // 4h. SSLContext.init() — inject permissive TrustManager into every new SSL context
     safeHook('SSLContext.init() — permissive TrustManager', function () {
         var X509TM = Java.use('javax.net.ssl.X509TrustManager');
         var PermTM = Java.registerClass({
@@ -370,7 +490,9 @@ Java.perform(function () {
                 }
             }
         });
+
         var tmArray = Java.array('javax.net.ssl.TrustManager', [PermTM.$new()]);
+
         Java.use('javax.net.ssl.SSLContext')
             .init.overload(
                 '[Ljavax.net.ssl.KeyManager;',
@@ -381,6 +503,8 @@ Java.perform(function () {
                 this.init(km, tmArray, sr);
             };
     });
+
+    // 4i. Heap scan — X509ExtendedTrustManager instances already constructed
     safeHook('X509ExtendedTrustManager heap scan', function () {
         Java.choose('javax.net.ssl.X509ExtendedTrustManager', {
             onMatch: function (tm) {
@@ -395,6 +519,8 @@ Java.perform(function () {
             onComplete: function () { console.log('[*] X509ExtendedTrustManager heap done'); }
         });
     });
+
+    // 4j. Heap scan — X509TrustManager instances already constructed
     safeHook('X509TrustManager heap scan', function () {
         Java.choose('javax.net.ssl.X509TrustManager', {
             onMatch: function (tm) {
@@ -409,6 +535,8 @@ Java.perform(function () {
             onComplete: function () { console.log('[*] X509TrustManager heap done'); }
         });
     });
+
+    // 4k. Heap scan — HostnameVerifier instances already constructed
     safeHook('HostnameVerifier heap scan', function () {
         Java.choose('javax.net.ssl.HostnameVerifier', {
             onMatch: function (hv) {
@@ -423,6 +551,8 @@ Java.perform(function () {
             onComplete: function () { console.log('[*] HostnameVerifier heap done'); }
         });
     });
+
+    // 4l. HttpsURLConnection — suppress any default verifier/factory overrides
     safeHook('HttpsURLConnection defaults', function () {
         var HUC = Java.use('javax.net.ssl.HttpsURLConnection');
         HUC.setDefaultHostnameVerifier.implementation = function (hv) {
@@ -434,6 +564,7 @@ Java.perform(function () {
             };
         } catch (_) {}
     });
+
     safeHook('com.android.okhttp.HttpsURLConnectionImpl', function () {
         var IMPL = Java.use('com.android.okhttp.internal.huc.HttpsURLConnectionImpl');
         try {
@@ -442,6 +573,12 @@ Java.perform(function () {
             };
         } catch (_) {}
     });
+
+    // 4m. HostNameVerifierSSL — CUSTOM CERT PINNER (source verified)
+    //     verify() opens a live HTTPS connection, computes SHA-256 of the
+    //     server cert, then compares against hardcoded hash:
+    //     "da61debb8deda1425393f4b8c1191f78b4b37c1edca5ef532a2c7c2d1a676c30"
+    //     We bypass by simply returning true without doing any of that.
     safeHook('HostNameVerifierSSL.verify()', function () {
         var HNVSSL = Java.use('com.Macom.emicollection.app.common.HostNameVerifierSSL');
         HNVSSL.verify.overload('java.lang.String', 'javax.net.ssl.SSLSession')
@@ -450,11 +587,16 @@ Java.perform(function () {
                 return true;
             };
     });
+
+    // Also hook mc1.o000ooO0() — the final string-equality check that compares
+    // the computed hex digest against the hardcoded pin hash.
+    // If verify() hook is bypassed for any reason, this kills the comparison itself.
     safeHook('mc1.o000ooO0() — cert pin hash comparison', function () {
         var mc1 = Java.use('com.Macom.emicollection.mc1');
         mc1.o000ooO0.overloads.forEach(function (ovl) {
             ovl.implementation = function () {
                 var args = Array.prototype.slice.call(arguments);
+                // args[1] is the hardcoded pin hash — detect and short-circuit
                 if (args.some(function (a) {
                     return typeof a === 'string' && a.length === 64 &&
                            /^[0-9a-f]+$/.test(a);  // looks like a SHA-256 hex string
@@ -466,6 +608,14 @@ Java.perform(function () {
             };
         });
     });
+
+    // 4n. REMOVED — SSLPeerUnverifiedException $init hook caused "message = bypassed"
+    //     to appear in the app's login error dialog because the app catches exceptions
+    //     and forwards their .getMessage() directly to the UI error handler.
+    //     All SSL throw sites are blocked upstream; this hook is not needed.
+
+    // 4o. HttpsURLConnection.getServerCertificates() — called inside HostNameVerifierSSL
+    //     If the inner connection fails, swallow the exception silently.
     safeHook('getServerCertificates() guard', function () {
         var HUC = Java.use('javax.net.ssl.HttpsURLConnection');
         try {
@@ -479,6 +629,9 @@ Java.perform(function () {
             };
         } catch (_) {}
     });
+
+    // 4p. Sanitise any remaining SSL exception messages before they reach the UI.
+    //     Catches anything that slips through the upstream hooks.
     safeHook('SSLException message sanitiser', function () {
         var SSLEx = Java.use('javax.net.ssl.SSLException');
         SSLEx.$init.overload('java.lang.String').implementation = function (msg) {
@@ -490,12 +643,20 @@ Java.perform(function () {
             this.$init('Connection error', cause);
         };
     });
+
     console.log('\n[✓] MASTER BYPASS ACTIVE\n' +
                 '    Root detection : all gates bypassed\n' +
                 '    SSL pinning    : com.android.okhttp + conscrypt + NSC bypassed\n');
+
+    // ════════════════════════════════════════════════════════════════
+    // SECTION 5 — INLINE RECON: find shaded CertificatePinner at runtime
+    // Runs after 4s to let app fully init, then scans every Macom class
+    // for check() method — that is the shaded okhttp3.CertificatePinner
+    // ════════════════════════════════════════════════════════════════
     setTimeout(function () {
         console.log('\n[SCAN] Searching for shaded CertificatePinner...');
         var pinnerFound = [];
+
         Java.perform(function () {
             Java.enumerateLoadedClasses({
                 onMatch: function (cls) {
@@ -513,6 +674,7 @@ Java.perform(function () {
                 },
                 onComplete: function () {
                     console.log('[SCAN] Done. Found ' + pinnerFound.length + ' check() candidates.');
+
                     pinnerFound.forEach(function (item) {
                         try {
                             var C = Java.use(item.cls);
@@ -526,6 +688,8 @@ Java.perform(function () {
                             console.log('[-] Hook failed ' + item.cls + ': ' + e);
                         }
                     });
+
+                    // Also heap-scan for any constructed CertificatePinner instances
                     pinnerFound.forEach(function (item) {
                         try {
                             Java.choose(item.cls, {
@@ -543,9 +707,12 @@ Java.perform(function () {
                             });
                         } catch (_) {}
                     });
+
                     console.log('[✓] Scan complete — tap login now');
                 }
             });
+
+            // Hook ALL exception constructors to catch pinning failure message
             ['java.io.IOException',
              'javax.net.ssl.SSLException',
              'java.lang.RuntimeException',

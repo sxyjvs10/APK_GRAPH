@@ -1,8 +1,12 @@
 'use strict';
+// Find the shaded okhttp3 CertificatePinner by scanning for its unique string
+// "Certificate pinning failure!" is hardcoded in exactly one class
 Java.perform(function () {
+
     setTimeout(function () {
         console.log('[SCAN] Scanning all Macom classes for check() and pin-related methods...');
         var found = [];
+
         Java.enumerateLoadedClasses({
             onMatch: function (cls) {
                 if (cls.indexOf('com.Macom.emicollection') === -1) return;
@@ -10,6 +14,7 @@ Java.perform(function () {
                     var C = Java.use(cls);
                     var methods = C.class.getDeclaredMethods();
                     var fields  = C.class.getDeclaredFields();
+
                     methods.forEach(function (m) {
                         var mname = m.getName();
                         if (mname === 'check' || mname === 'checkPins') {
@@ -17,6 +22,8 @@ Java.perform(function () {
                             found.push(cls);
                         }
                     });
+
+                    // Look for String fields that could hold pin hashes (length ~50 chars base64)
                     fields.forEach(function (f) {
                         var fname = f.getName();
                         var ftype = f.getType().getName();
@@ -24,6 +31,7 @@ Java.perform(function () {
                             ftype === '[Ljava.lang.String;') {
                             try {
                                 f.setAccessible(true);
+                                // Just log field name — value needs instance
                                 console.log('[FIELD] ' + cls + '.' + fname + ' : ' + ftype);
                             } catch(_) {}
                         }
@@ -32,6 +40,8 @@ Java.perform(function () {
             },
             onComplete: function () {
                 console.log('[SCAN] Complete. Classes with check(): ' + found.join(', '));
+
+                // Now hook all found classes
                 found.forEach(function (cls) {
                     try {
                         var C = Java.use(cls);
@@ -45,10 +55,13 @@ Java.perform(function () {
                         console.log('[-] Hook failed ' + cls + ': ' + e);
                     }
                 });
+
                 console.log('[✓] All check() methods hooked — tap login now');
             }
         });
     }, 4000); // Wait 4s for app to fully initialize
+
+    // Also hook ALL exception constructors to catch the pin failure message
     ['java.io.IOException',
      'javax.net.ssl.SSLException',
      'java.lang.RuntimeException',
@@ -64,6 +77,8 @@ Java.perform(function () {
             };
         } catch(_) {}
     });
+
+    // Hook com.android.okhttp.OkHttpClient.newCall to log URLs
     try {
         var OHC = Java.use('com.android.okhttp.OkHttpClient');
         OHC.newCall.implementation = function (req) {
@@ -71,5 +86,6 @@ Java.perform(function () {
             return this.newCall(req);
         };
     } catch(_) {}
+
     console.log('[✓] recon3 active — waiting 4s then scanning...');
 });

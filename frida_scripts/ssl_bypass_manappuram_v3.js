@@ -1,8 +1,24 @@
+// ============================================================
+// SSL Bypass v3 - com.manappuram.palma (VRUKSHA APK)
+// v3 Changes based on console output analysis:
+//   - Fixed okhttp3 CertificatePinner overload signatures
+//   - Fixed squareup CertificatePinner overload signatures
+//   - Added PROXY DETECTION bypass
+//   - Added VPN/Network detection bypass
+//   - Added Firebase/Crashlytics network bypass
+//
+// Usage:
+//   frida -U -f com.manappuram.palma -l ssl_bypass_manappuram_v3.js --no-pause
+// ============================================================
+
 setTimeout(function () {
     Java.perform(function () {
+
         console.log("\n=================================================");
         console.log("[*] SSL Bypass v3 Starting - com.manappuram.palma");
         console.log("=================================================\n");
+
+        // ===== 1. NetworkSecurityConfig - already working, keep =====
         try {
             var PinningTrustManager = Java.use(
                 "android.security.net.config.NetworkSecurityTrustManager"
@@ -15,6 +31,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] NetworkSecurityTrustManager: " + e);
         }
+
+        // ===== 2. NetworkSecurityConfig getPins - already working =====
         try {
             var NetworkSecurityConfig = Java.use(
                 "android.security.net.config.NetworkSecurityConfig"
@@ -27,8 +45,11 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] NetworkSecurityConfig: " + e);
         }
+
+        // ===== 3. OkHttp3 CertificatePinner - FIXED overload =====
         try {
             var CertPinner = Java.use("okhttp3.CertificatePinner");
+            // Hook all available overloads
             var checkOverloads = CertPinner.check.overloads;
             checkOverloads.forEach(function (overload) {
                 overload.implementation = function () {
@@ -41,6 +62,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] okhttp3.CertificatePinner: " + e);
         }
+
+        // ===== 4. Squareup CertificatePinner - FIXED overload =====
         try {
             var SqPinner = Java.use("com.squareup.okhttp.CertificatePinner");
             var sqOverloads = SqPinner.check.overloads;
@@ -54,6 +77,9 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] squareup.CertificatePinner: " + e);
         }
+
+        // ===== 5. PROXY DETECTION BYPASS =====
+        // App may be detecting proxy via System properties
         try {
             var System = Java.use("java.lang.System");
             System.getProperty.overload("java.lang.String").implementation = function (key) {
@@ -69,10 +95,13 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] System.getProperty: " + e);
         }
+
+        // ===== 6. ProxySelector bypass =====
         try {
             var ProxySelector = Java.use("java.net.ProxySelector");
             var Proxy = Java.use("java.net.Proxy");
             var ArrayList = Java.use("java.util.ArrayList");
+
             ProxySelector.getDefault.implementation = function () {
                 console.log("[+] ProxySelector.getDefault() bypassed");
                 return Java.registerClass({
@@ -92,6 +121,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] ProxySelector: " + e);
         }
+
+        // ===== 7. ConnectivityManager - proxy/VPN detection =====
         try {
             var ConnectivityManager = Java.use("android.net.ConnectivityManager");
             ConnectivityManager.getDefaultProxy.implementation = function () {
@@ -102,6 +133,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] ConnectivityManager.getDefaultProxy: " + e);
         }
+
+        // ===== 8. NetworkInfo VPN type detection =====
         try {
             var NetworkInfo = Java.use("android.net.NetworkInfo");
             NetworkInfo.getType.implementation = function () {
@@ -116,6 +149,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] NetworkInfo.getType: " + e);
         }
+
+        // ===== 9. InetSocketAddress proxy check =====
         try {
             var InetSocketAddress = Java.use("java.net.InetSocketAddress");
             InetSocketAddress.createUnresolved.implementation = function (host, port) {
@@ -126,9 +161,12 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] InetSocketAddress: " + e);
         }
+
+        // ===== 10. Global TrustManager - already working, keep =====
         try {
             var X509TrustManager = Java.use("javax.net.ssl.X509TrustManager");
             var SSLContext = Java.use("javax.net.ssl.SSLContext");
+
             var BypassTM = Java.registerClass({
                 name: "com.vapt.bypass.TrustManagerV3",
                 implements: [X509TrustManager],
@@ -140,6 +178,7 @@ setTimeout(function () {
                     getAcceptedIssuers: function () { return []; }
                 }
             });
+
             var sslCtx = SSLContext.getInstance("TLS");
             sslCtx.init(null, [BypassTM.$new()], null);
             var HttpsURLConnection = Java.use("javax.net.ssl.HttpsURLConnection");
@@ -148,6 +187,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] Global TrustManager: " + e);
         }
+
+        // ===== 11. HostnameVerifier - already working, keep =====
         try {
             var HostnameVerifier = Java.use("javax.net.ssl.HostnameVerifier");
             var HttpsConn = Java.use("javax.net.ssl.HttpsURLConnection");
@@ -167,6 +208,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] HostnameVerifier: " + e);
         }
+
+        // ===== 12. OkHttpClient Builder strip pinner =====
         try {
             var OkHttpBuilder = Java.use("okhttp3.OkHttpClient$Builder");
             OkHttpBuilder.certificatePinner.overload(
@@ -181,6 +224,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] OkHttpClient.Builder.certificatePinner: " + e);
         }
+
+        // ===== 13. Conscrypt TrustManagerImpl =====
         try {
             var conscrypt = Java.use("com.android.org.conscrypt.TrustManagerImpl");
             conscrypt.verifyChain.implementation = function (
@@ -193,6 +238,8 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] Conscrypt TrustManagerImpl: " + e);
         }
+
+        // ===== 14. SSLContext.init =====
         try {
             var SSLCtxHook = Java.use("javax.net.ssl.SSLContext");
             SSLCtxHook.init.overload(
@@ -219,9 +266,11 @@ setTimeout(function () {
         } catch (e) {
             console.log("[-] SSLContext.init: " + e);
         }
+
         console.log("\n=================================================");
         console.log("[*] v3 Hooks installed. Try opening the app now.");
         console.log("[*] If still blocked - share network_security_config.xml");
         console.log("=================================================\n");
+
     });
 }, 500);

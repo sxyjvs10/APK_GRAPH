@@ -1,4 +1,7 @@
+// final_bypass.js
 Java.perform(function () {
+
+    // ── Block app self-termination ─────────────────────
     try {
         Java.use("java.lang.System").exit.implementation = function (c) {
             console.log("[!] System.exit(" + c + ") BLOCKED");
@@ -8,6 +11,8 @@ Java.perform(function () {
         };
         console.log("[+] Exit hooks installed");
     } catch(e) { console.log("[-] Exit: " + e); }
+
+    // ── RootBeer ───────────────────────────────────────
     try {
         var RootBeer = Java.use("l2.b");
         ["n","o","d","f","g","l","c","e","b"].forEach(function(m) {
@@ -20,6 +25,8 @@ Java.perform(function () {
         });
         console.log("[+] RootBeer hooked");
     } catch(e) { console.log("[-] RootBeer: " + e); }
+
+    // ── r2.a — Detection Manager ───────────────────────
     try {
         var Manager = Java.use("r2.a");
         Manager.class.getDeclaredMethods().forEach(function (m) {
@@ -36,6 +43,8 @@ Java.perform(function () {
         });
         console.log("[+] r2.a Manager hooked");
     } catch(e) { console.log("[-] r2.a: " + e); }
+
+    // ── r2.b — Config class ────────────────────────────
     try {
         var Config = Java.use("r2.b");
         Config.class.getDeclaredMethods().forEach(function (m) {
@@ -52,6 +61,8 @@ Java.perform(function () {
         });
         console.log("[+] r2.b Config hooked");
     } catch(e) { console.log("[-] r2.b: " + e); }
+
+    // ── r2.c — SafeDevice Flutter Channel ─────────────
     try {
         var SafeDevice = Java.use("r2.c");
         SafeDevice.e.implementation = function (iVar, dVar) {
@@ -60,6 +71,7 @@ Java.perform(function () {
                 console.log("[>>>] SafeDevice call: " + method);
                 var Bool    = Java.use("java.lang.Boolean");
                 var HashMap = Java.use("java.util.HashMap");
+
                 if (method === "isJailBroken")            { dVar.a(Bool.FALSE);     return; }
                 if (method === "isRealDevice")             { dVar.a(Bool.TRUE);      return; }
                 if (method === "isDevelopmentModeEnable")  { dVar.a(Bool.FALSE);     return; }
@@ -69,6 +81,7 @@ Java.perform(function () {
                 if (method === "rootDetectionDetails")     { dVar.a(HashMap.$new()); return; }
                 if (method === "init")                     { dVar.a(null);           return; }
                 if (method === "getPlatformVersion")       { dVar.a("Android 13");   return; }
+
                 this.e(iVar, dVar);
             } catch(e) {
                 console.log("[-] Channel call error: " + e);
@@ -77,6 +90,8 @@ Java.perform(function () {
         };
         console.log("[+] SafeDevice r2.c hooked");
     } catch(e) { console.log("[-] r2.c: " + e); }
+
+    // ── W2 Detection Classes ───────────────────────────
     ["W2.b","W2.d","W2.e","W2.f","W2.g","W2.h"].forEach(function(cls) {
         try {
             var c = Java.use(cls);
@@ -95,5 +110,6 @@ Java.perform(function () {
             console.log("[+] " + cls + " hooked");
         } catch(e) { console.log("[-] " + cls + ": " + e); }
     });
+
     console.log("[====] All bypass hooks installed ====");
 });

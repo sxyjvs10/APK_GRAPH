@@ -1,4 +1,6 @@
+// final_v2.js — EGL fix + aggressive lib detection
 "use strict";
+
 function safeStr(p,n){
   try{if(!p||p.isNull())return null;p.readU8();return p.readUtf8String(n||128);}
   catch(_){return null;}
@@ -6,6 +8,8 @@ function safeStr(p,n){
 function modOf(a){
   try{var m=Process.findModuleByAddress(a);return m?m.name:"?";}catch(_){return "?";}
 }
+
+// ── EGL strstr crash fix ──
 (function(){
   var sp=Module.findExportByName("libc.so","strstr");
   if(!sp){console.log("[-] strstr not found");return;}
@@ -15,6 +19,7 @@ function modOf(a){
       try{
         if(a[0].isNull()||a[1].isNull()){this._skip=true;return;}
         var b0=a[1].readU8(), b1=a[1].add(1).readU8();
+        // UTF-16 detection: even byte printable ASCII + odd byte 0x00
         if(b1===0x00&&b0>0x1f&&b0<0x7f){this._skip=true;return;}
         if(b0===0||b0>127){this._skip=true;return;}
       }catch(_){this._skip=true;}
@@ -23,6 +28,8 @@ function modOf(a){
   });
   console.log("[+] strstr EGL fix active");
 })();
+
+// ── Kill suppressors ──
 (function(){
   ["pthread_kill","raise","tgkill"].forEach(function(s){
     var p=Module.findExportByName("libc.so",s);if(!p)return;
@@ -52,6 +59,8 @@ function modOf(a){
   }});
   console.log("[+] Kill suppressors armed");
 })();
+
+// ── fopen block ──
 var _hb=["/data/local/tmp/frida","/data/local/tmp/re.frida",
          "/data/local/tmp/frida-server","/system/bin/frida-server"];
 (function(){
@@ -65,7 +74,10 @@ var _hb=["/data/local/tmp/frida","/data/local/tmp/re.frida",
   }});
   console.log("[+] fopen block armed");
 })();
+
+// ── Security lib hooking ──
 var _hooked={};
+
 function hookAllExports(mod){
   if(_hooked[mod.name])return;
   _hooked[mod.name]=true;
@@ -94,9 +106,11 @@ function hookAllExports(mod){
   });
   console.log("[+] "+mod.name+": "+n+" hooks active\n");
 }
+
 function hookClib(mod){
   if(_hooked["clib_ssl"])return; _hooked["clib_ssl"]=true;
   console.log("\n===== libclib.so SSL @ "+mod.base+" =====");
+  // Return 1 (OpenSSL success) for verify functions
   ["ssl_verify_cert_chain","SSL_verify_client_post_handshake",
    "X509_verify_cert","X509_verify",
    "ssl_do_handshake","SSL_do_handshake"].forEach(function(name){
@@ -112,6 +126,7 @@ function hookClib(mod){
       console.log("  [+] "+name);
     }catch(e){console.log("  [-] "+name+": "+e.message);}
   });
+  // SSL_CTX_set_custom_verify — noop callback
   var scv=Module.findExportByName(mod.name,"SSL_CTX_set_custom_verify");
   if(scv){
     var noop=new NativeCallback(function(){return 1;},"int",["pointer","pointer"]);
@@ -122,6 +137,8 @@ function hookClib(mod){
     console.log("  [+] SSL_CTX_set_custom_verify");
   }
 }
+
+// Map lib names to hook functions
 var _libHandlers={
   "libtmlib.so":       hookAllExports,
   "libsecurity.so":    hookAllExports,
@@ -129,10 +146,14 @@ var _libHandlers={
   "libpolarssl.so":    hookAllExports,
   "libclib.so":        function(m){hookClib(m);hookAllExports(m);},
 };
+
+// ── Aggressive polling — every 100ms ──
+// Security libs load during app init, we need to catch them fast
 var _pollCount=0;
 var _allHooked=false;
 var _pollTimer=setInterval(function(){
   if(_allHooked||++_pollCount>200){clearInterval(_pollTimer);return;}
+
   var remaining=0;
   Object.keys(_libHandlers).forEach(function(name){
     if(_hooked[name]||(name==="libclib.so"&&_hooked["clib_ssl"])) return;
@@ -144,8 +165,11 @@ var _pollTimer=setInterval(function(){
       remaining++;
     }
   });
+
   if(remaining===0) _allHooked=true;
 },100); // Poll every 100ms — much faster than before
+
+// ── dlopen hooks as backup ──
 [["libdl.so","dlopen"],["libdl.so","android_dlopen_ext"],
  ["libdl_android.so","__loader_dlopen"],
  ["libdl_android.so","__loader_android_dlopen_ext"]
@@ -157,11 +181,13 @@ var _pollTimer=setInterval(function(){
       var n=this._n;
       Object.keys(_libHandlers).forEach(function(lib){
         if(n.indexOf(lib.replace(".so",""))!==-1){
+          // Hook immediately on return, before any code runs
           var m=Process.findModuleByName(lib);
           if(m){
             console.log("[dlopen] Caught: "+lib);
             _libHandlers[lib](m);
           } else {
+            // Try after a very short delay
             setTimeout(function(){
               var mm=Process.findModuleByName(lib);
               if(mm){console.log("[dlopen+50ms] Caught: "+lib);_libHandlers[lib](mm);}
@@ -173,8 +199,11 @@ var _pollTimer=setInterval(function(){
   });
   console.log("[+] "+t[0]+"!"+t[1]+" hooked");
 });
+
+// ── Java layer ──
 Java.perform(function(){
   function tryJ(l,fn){try{fn();console.log("[+] "+l);}catch(e){console.log("[-] "+l+": "+e.message);}}
+
   tryJ("FLAG_SECURE",function(){
     Java.use("android.view.Window").setFlags.overload("int","int")
       .implementation=function(f,m){this.setFlags(f&~0x2000,m&~0x2000);};
@@ -300,6 +329,8 @@ Java.perform(function(){
       },onComplete:function(){}
     });}catch(_){}
   },3000);
+
+  // Find Talsec classes dynamically
   setTimeout(function(){
     try{
       Java.enumerateLoadedClasses({
@@ -312,8 +343,11 @@ Java.perform(function(){
       });
     }catch(_){}
   },2000);
+
   console.log("[+] Java layer armed");
 });
+
+// ── REPL ──
 global.dumpLib=function(name){
   var m=Process.findModuleByName(name);if(!m){console.log("not loaded");return;}
   console.log(name+" @ "+m.base);
@@ -338,6 +372,7 @@ global.enumerateClasses=function(kw){
     onComplete:function(){console.log("done");}
   });
 };
+
 console.log("\n[+] FINAL BYPASS v2 ARMED");
 console.log("    EGL fix     : strstr UTF-16 guard");
 console.log("    Polling     : every 100ms (aggressive)");

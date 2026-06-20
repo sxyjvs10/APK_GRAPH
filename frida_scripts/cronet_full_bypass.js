@@ -1,10 +1,23 @@
+// ===============================
+// FINAL NATIVE SSL BYPASS (Flutter)
+// ===============================
+
 console.log("[+] Native bypass script loaded");
+
+// Hook after libs load
 setTimeout(function () {
+
     var modules = Process.enumerateModules();
+
     modules.forEach(function (m) {
+
         var name = m.name.toLowerCase();
+
         if (name.includes("flutter") || name.includes("ssl")) {
+
             console.log("[*] Checking module:", m.name);
+
+            // Hook SSL verification
             try {
                 var verify = Module.findExportByName(m.name, "SSL_get_verify_result");
                 if (verify) {
@@ -15,6 +28,8 @@ setTimeout(function () {
                     }, 'int', ['pointer']));
                 }
             } catch (e) {}
+
+            // Hook write (debug)
             try {
                 var write = Module.findExportByName(m.name, "SSL_write");
                 if (write) {
@@ -26,6 +41,8 @@ setTimeout(function () {
                     });
                 }
             } catch (e) {}
+
+            // Hook read (debug)
             try {
                 var read = Module.findExportByName(m.name, "SSL_read");
                 if (read) {
@@ -39,4 +56,5 @@ setTimeout(function () {
             } catch (e) {}
         }
     });
+
 }, 2000);
