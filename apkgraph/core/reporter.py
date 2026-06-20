@@ -251,12 +251,15 @@ class ReportGenerator:
         # ── Export Backend Probing scripts ─────────────────────────────
         self._export_backend_probes(enriched, output_path)
 
+        graph_json = json.dumps(self.data.get("graph", {}))
+
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>APKGraph Report — {apk_meta.get('app_name','App')}</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <style>
 :root {{
   --bg:#0d1117; --card:#161b22; --card2:#1c2128; --border:#30363d;
@@ -394,7 +397,56 @@ tr:last-child td{{border-bottom:none}}
     <div class="card" style="border-color:var(--accent)"><div class="card-num" style="color:var(--accent)">{len(findings.get('FridaHookAnalysis', {}).get('hooked_scripts_matched', []))}</div><div class="card-label">Verified Hooks</div></div>
   </div>
 
-  </div>
+  <h2>🕸️ Attack Surface Knowledge Graph</h2>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">
+    Interactive visualization of all vulnerabilities and their paths throughout the application. Drag nodes to explore.
+  </p>
+  <div id="kg-network" style="width:100%;height:500px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:2rem;"></div>
+
+  <script>
+    const graphData = {graph_json};
+    
+    // Parse networkx json to vis.js format
+    const nodes = new vis.DataSet(graphData.nodes.map(n => {{
+      let color = "#58a6ff"; // default accent
+      let shape = "dot";
+      
+      if (n.type === "Application") {{ color = "#d29922"; shape = "star"; }}
+      else if (["Secret", "Endpoint", "DeepLink", "WebView"].includes(n.type)) {{ color = "#f85149"; shape = "hexagon"; }}
+      else if (n.type === "ExportedComponent") {{ color = "#e3b341"; shape = "triangle"; }}
+      else if (n.type === "IntentHijack") {{ color = "#f85149"; shape = "diamond"; }}
+      
+      return {{
+        id: n.id,
+        label: n.type + "\\n" + (n.value ? n.value.substring(0, 25) : ""),
+        title: "ID: " + n.id + "\\nValue: " + (n.value || "") + "\\nType: " + n.type,
+        color: color,
+        shape: shape,
+        size: shape === "star" ? 30 : 15
+      }};
+    }}));
+
+    const edges = new vis.DataSet(graphData.links.map(l => {{
+      return {{
+        from: l.source,
+        to: l.target,
+        label: l.relation || "",
+        arrows: 'to',
+        font: {{ size: 10, color: '#8b949e', align: 'top' }},
+        color: {{ color: '#30363d', highlight: '#58a6ff' }}
+      }};
+    }}));
+
+    const container = document.getElementById('kg-network');
+    const data = {{ nodes: nodes, edges: edges }};
+    const options = {{
+      physics: {{ solver: 'forceAtlas2Based', stabilization: {{ iterations: 150 }} }},
+      nodes: {{ font: {{ color: '#e6edf3', size: 12 }} }},
+      edges: {{ smooth: {{ type: 'continuous' }} }},
+      interaction: {{ hover: true, tooltipDelay: 200, zoomView: true }}
+    }};
+    new vis.Network(container, data, options);
+  </script>
 
   {frida_hook_html}
   
