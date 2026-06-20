@@ -847,10 +847,10 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 
                 # Evidence value
                 evidence = (
-                    item.get("value") or item.get("name") or
-                    item.get("url") or item.get("component") or ""
+                    item.get("value") or item.get("snippet") or item.get("name") or
+                    item.get("url") or item.get("component") or item.get("description") or ""
                 )
-                evidence_str = str(evidence)[:150]
+                evidence_str = str(evidence)[:200]
 
                 # Location / Path extraction
                 loc_parts = []
@@ -874,6 +874,10 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                         loc_parts.append(str(loc[0]))
                     else:
                         loc_parts.append(str(loc))
+                elif item.get("usage_method"):
+                    loc_parts.append(str(item.get("usage_method")))
+                    if item.get("sink_path"):
+                        loc_parts.append(f"Sink: {item.get('sink_path')}")
                     
                 loc_str = " | ".join(loc_parts)
 
