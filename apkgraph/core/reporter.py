@@ -1057,7 +1057,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             </thead>
             <tbody>
         """
-        for script in matched:
+        for script in matched[:10]: # Limit table to top 10 to avoid clutter
             conf = script.get("confidence", "Medium")
             badge = "danger" if conf == "High" else "warning"
             name = script.get("script_name", "Unknown")
@@ -1070,9 +1070,13 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
               </tr>
             """
         table_html += "</tbody></table></div>"
+        
+        if len(matched) > 10:
+            table_html += f'<div style="text-align:right; font-size:.8rem; color:var(--muted); margin-top:-10px; margin-bottom:20px;">... and {len(matched) - 10} more in JSON report</div>'
+            
         html += table_html
         
-        # Show only top 3 scripts' full content
+        # Show only top 3 scripts' full content, in collapsible tags
         top_scripts = matched[:3]
         omitted = len(matched) - 3
         
@@ -1087,13 +1091,15 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             js_content = script.get("script_content", "/* Script content not available */")
             
             html += f"""
-<div class="path-card" style="border-color:{border_col}; background:var(--card2)">
-  <div class="path-title" style="color:{title_col}">Statically Verified Hook</div>
+<div class="path-card" style="border-color:{border_col}; background:var(--card2); margin-bottom: 1rem;">
+  <div class="path-title" style="color:{title_col}">{script.get('script_name', 'Verified Hook')}</div>
   <div class="path-meta">Hooks verified: <strong>{script.get('matched_targets')}/{script.get('total_targets')} targets found in APK</strong></div>
   <div style="font-size:.82rem; margin: .8rem 0 .4rem; font-weight:600">Classes hooked in this APK:</div>
   <div style="font-size:.82rem; color:var(--muted); margin-bottom: 1rem;">{classes_html}</div>
-  <div style="font-size:.82rem; margin: .8rem 0 .4rem; font-weight:600">Frida Hook Content:</div>
-  <pre class="poc" style="border-color:{border_col}; max-height: 400px; overflow-y: auto;">{self._esc(js_content)}</pre>
+  <details>
+    <summary style="cursor:pointer; font-weight:bold; color:var(--accent); font-size: 0.9rem; margin-bottom: 0.5rem; outline: none;">▶ View Full Frida Script</summary>
+    <pre class="poc" style="border-color:{border_col}; max-height: 400px; overflow-y: auto; margin-top: 0.5rem;">{self._esc(js_content)}</pre>
+  </details>
 </div>"""
 
         if omitted > 0:
