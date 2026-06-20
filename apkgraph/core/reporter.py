@@ -15,6 +15,7 @@ ReportGenerator v3.0 — Full Threat & Reproduction Report
 """
 import os
 import json
+import base64
 import datetime
 from apkgraph.core.engine import SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM, SEVERITY_LOW
 from apkgraph.core.reproduction import enrich_findings
@@ -251,7 +252,8 @@ class ReportGenerator:
         # ── Export Backend Probing scripts ─────────────────────────────
         self._export_backend_probes(enriched, output_path)
 
-        graph_json = json.dumps(self.data.get("graph", {}))
+        graph_json_str = json.dumps(self.data.get("graph", {}))
+        graph_b64 = base64.b64encode(graph_json_str.encode('utf-8')).decode('utf-8')
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -404,7 +406,8 @@ tr:last-child td{{border-bottom:none}}
   <div id="kg-network" style="width:100%;height:500px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:2rem;"></div>
 
   <script>
-    const graphData = {graph_json};
+    // Safely decode the base64 JSON payload to prevent </script> injection crashes
+    const graphData = JSON.parse(atob("{graph_b64}"));
     
     // Parse networkx json to vis.js format
     const rawNodes = graphData.nodes || [];
@@ -421,7 +424,7 @@ tr:last-child td{{border-bottom:none}}
       
       return {{
         id: n.id,
-        label: n.type + "\\n" + (n.value ? n.value.substring(0, 25) : ""),
+        label: n.type + "\\n" + (n.value ? String(n.value).substring(0, 25) : ""),
         title: "ID: " + n.id + "\\nValue: " + (n.value || "") + "\\nType: " + n.type,
         color: color,
         shape: shape,
