@@ -408,7 +408,7 @@ tr:last-child td{{border-bottom:none}}
     
     // Parse networkx json to vis.js format
     const rawNodes = graphData.nodes || [];
-    const rawLinks = graphData.links || [];
+    const rawLinks = graphData.links || graphData.edges || [];
 
     const nodes = new vis.DataSet(rawNodes.map(n => {{
       let color = "#58a6ff"; // default accent
