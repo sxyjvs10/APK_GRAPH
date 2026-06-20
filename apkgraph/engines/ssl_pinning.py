@@ -136,6 +136,18 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
                 # Detect custom TrustManager implementations
                 if method_name in ("checkServerTrusted", "checkClientTrusted", "getAcceptedIssuers"):
                     sig_key = f"{cls_name}#TrustManager"
+                    
+                    code_snippet = []
+                    try:
+                        for instr in method_obj.get_instructions():
+                            try:
+                                code_snippet.append(f"{instr.get_name()} {instr.get_output()}")
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                    code_str = "\n".join(code_snippet[:50])
+                    
                     if sig_key not in detected_sigs:
                         detected_sigs.add(sig_key)
                         result["implementations"].append({
@@ -146,6 +158,7 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
                             "bypass_script": "ssl_pinning_universal.js",
                             "severity":      SEVERITY_HIGH,
                             "method_hooks":  [f"{cls_name.split('/')[-1]}.{method_name}"],
+                            "code_snippet":  code_str,
                         })
                         if "ssl_pinning_universal.js" not in result["bypass_scripts"]:
                             result["bypass_scripts"].append("ssl_pinning_universal.js")

@@ -134,8 +134,22 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
 
                 if method_name in _ROOT_METHOD_NAMES:
                     entry = f"{cls_name}->{method_name}()"
-                    if entry not in result["custom_methods"]:
-                        result["custom_methods"].append(entry)
+                    # Extract Dalvik code for AI prompt
+                    code_snippet = []
+                    try:
+                        for instr in method_obj.get_instructions():
+                            try:
+                                code_snippet.append(f"{instr.get_name()} {instr.get_output()}")
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                    
+                    code_str = "\n".join(code_snippet[:50]) # limit 50 lines to avoid massive prompt
+                    
+                    if not any(isinstance(m, dict) and m.get("method") == entry for m in result["custom_methods"]):
+                        result["custom_methods"].append({"method": entry, "code": code_str})
+                        
                     if "root_detection_bypass.js" not in result["bypass_scripts"]:
                         result["bypass_scripts"].append("root_detection_bypass.js")
 

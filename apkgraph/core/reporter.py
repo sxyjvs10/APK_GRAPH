@@ -1134,11 +1134,24 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         # Additional deep extraction for Root/SSL
         deep_context = []
         if root_data.get("custom_methods"):
-            deep_context.append("Root Check Methods: " + ", ".join(root_data["custom_methods"][:5]))
+            # custom_methods is now a list of dicts: {"method": "...", "code": "..."}
+            for m in root_data["custom_methods"][:2]:
+                if isinstance(m, dict):
+                    deep_context.append(f"Root Method: {m.get('method')}\nDalvik Code:\n{m.get('code')}")
+                elif isinstance(m, str):
+                    deep_context.append(f"Root Method: {m}")
+                    
         if root_data.get("su_path_checks"):
             deep_context.append("Hardcoded Root Paths: " + ", ".join(root_data["su_path_checks"][:5]))
+            
+        if ssl_data.get("implementations"):
+            for impl in ssl_data.get("implementations", [])[:2]:
+                if impl.get("code_snippet"):
+                    deep_context.append(f"SSL Pinning Method: {impl.get('class')}->{impl.get('method')} {impl.get('name')}\nDalvik Code:\n{impl.get('code_snippet')}")
+        
         if ssl_data.get("classes_with_pinning"):
             deep_context.append("SSL Pinning Classes: " + ", ".join(ssl_data["classes_with_pinning"][:5]))
+            
         if ssl_data.get("hardcoded_pins"):
             pins = [p.get("value") for p in ssl_data["hardcoded_pins"] if isinstance(p, dict)]
             if pins:
