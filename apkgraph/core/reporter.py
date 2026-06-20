@@ -1066,17 +1066,31 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         html += """
 <div class="path-card" style="border-color:var(--accent); background:var(--card); margin-top: 2rem;">
   <div class="path-title" style="color:var(--accent)">Create a Custom Hook (AI Assistant Guide)</div>
-  <div class="path-meta">Need to hook a different class? Provide these 3 components to an AI assistant:</div>
-  <ol style="font-size:.85rem; margin-top: 10px; line-height: 1.6;">
-    <li><strong>Target Class Name:</strong> The full package path (e.g., <code>com.example.app.SecretManager</code>) found in the Location tags above.</li>
-    <li><strong>Target Method Name:</strong> The exact method name you want to intercept (e.g., <code>decryptKey</code>).</li>
-    <li><strong>Return Type / Arguments:</strong> Ask the AI to build a hook that dumps the arguments or forces the return value (e.g., <code>return true;</code>).</li>
+  <div class="path-meta">Need to dynamically bypass a specific function or dump its secrets? Provide this detailed context to an AI assistant (like ChatGPT, Claude, or Gemini) to generate a flawless Frida script:</div>
+  <ol style="font-size:.85rem; margin-top: 10px; line-height: 1.6; color:var(--text);">
+    <li><strong>Target Class Path:</strong> Extract this from the red <code>Location</code> tag in the finding cards above (e.g., <code>com.example.crypto.AESManager</code>).</li>
+    <li><strong>Target Method Name:</strong> Extract the exact method name (e.g., <code>decrypt</code>). Mention if it takes arguments or returns a specific type.</li>
+    <li><strong>Objective:</strong> Be explicit. Do you want to:
+      <ul style="margin-top:4px; padding-left: 20px;">
+        <li>Bypass a check? (e.g., "Force the method to always return true")</li>
+        <li>Dump secrets? (e.g., "Print all input arguments to the console before calling the original method")</li>
+        <li>Trace execution? (e.g., "Print a Java stack trace every time this method is called")</li>
+      </ul>
+    </li>
   </ol>
-  <pre class="poc" style="border-color:var(--accent); font-size: 0.8rem; margin-top: 10px;">
-// Example AI Prompt Template:
-"Write a Frida script to hook the class 'com.example.MyClass'.
- I want to intercept the method 'checkLicense()' and force it 
- to always return true. Please provide the ready-to-run JS."
+  <div style="font-size:.82rem; margin: .8rem 0 .4rem; font-weight:600">Example AI Prompt Template (Copy & Paste):</div>
+  <pre class="poc" style="border-color:var(--accent); font-size: 0.8rem; line-height: 1.4;">
+"Act as an expert Android reverse engineer. I am dynamically analyzing an Android app.
+Write a Frida hook in Javascript for the following target:
+
+1. Class Name: 'com.example.security.AuthValidator'
+2. Method Name: 'isTokenValid'
+3. Objective: I need to bypass this validation. Hook the method so that it intercepts 
+   the execution, ignores the original logic, and unconditionally returns 'true'.
+
+Please include a console.log() statement inside the hook so I know when it executes. 
+Also, provide a code snippet showing how to deal with method overloading (e.g., using 
+.overload) if this method happens to have multiple variants."
 </pre>
 </div>
 """
