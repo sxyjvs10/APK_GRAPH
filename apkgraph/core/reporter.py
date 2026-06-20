@@ -447,10 +447,13 @@ tr:last-child td{{border-bottom:none}}
       else if (n.type === "Package") {{ color = "#8b949e"; shape = "dot"; }}
       else if (n.type === "Class") {{ color = "#c9d1d9"; shape = "box"; }}
       
+      let riskVal = n.risk || n.severity || n.confidence || "";
       return {{
         id: n.id,
+        type: n.type,
+        risk: riskVal,
         label: n.type + "\\n" + (n.value ? (typeof n.value === 'object' ? JSON.stringify(n.value).substring(0, 25) : String(n.value).substring(0, 25)) : ""),
-        title: "ID: " + n.id + "\\nValue: " + (n.value ? (typeof n.value === 'object' ? JSON.stringify(n.value) : String(n.value)) : "") + "\\nType: " + n.type,
+        title: "ID: " + n.id + "\\nValue: " + (n.value ? (typeof n.value === 'object' ? JSON.stringify(n.value) : String(n.value)) : "") + "\\nType: " + n.type + (riskVal ? "\\nRisk: " + riskVal : ""),
         color: color,
         shape: shape,
         size: shape === "star" ? 30 : (n.type === "Package" ? 10 : 15),
@@ -541,9 +544,15 @@ tr:last-child td{{border-bottom:none}}
           }}
       }});
       if (matchedNodes.length > 0) {{
+        // Unhide if hidden
+        if (matchedNodes[0].hidden) {{
+            nodes.update({{id: matchedNodes[0].id, hidden: false}});
+        }}
         network.focus(matchedNodes[0].id, {{ scale: 1.2, animation: true }});
         network.selectNodes([matchedNodes[0].id]);
         network.emit("click", {{nodes: [matchedNodes[0].id]}});
+      }} else {{
+        alert("No matching nodes found.");
       }}
     }});
 
@@ -558,7 +567,8 @@ tr:last-child td{{border-bottom:none}}
              hidden = true;
          }}
          if (hideLow && ["Secret", "Endpoint", "DeepLink", "WebView", "SSLPinning", "RootDetection", "IntentHijack"].includes(n.type)) {{
-            let isCrit = n.title && (n.title.includes('High') || n.title.includes('Critical'));
+            let r = (n.risk || "").toLowerCase();
+            let isCrit = r.includes('high') || r.includes('critical');
             if (!isCrit) hidden = true;
          }}
          updates.push({{id: n.id, hidden: hidden}});
