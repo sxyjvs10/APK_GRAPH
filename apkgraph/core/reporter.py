@@ -248,6 +248,12 @@ class ReportGenerator:
 
         # ── Build Deobfuscation HTML ───────────────────────────────────
         deobf_html = self._build_deobf_html(findings.get("Deobfuscation", {}).get("detected_methods", []))
+        # ── Pre-build score breakdown table ────────────────────────────────
+        breakdown_rows_html = ""
+        for factor, pts in sorted((risk.get("breakdown") or {}).items(), key=lambda x: -x[1]):
+            if pts > 0:
+                label = factor.replace("_", " ").title()
+                breakdown_rows_html += f"<tr><td>{label}</td><td>{pts}</td></tr>"
 
         # ── Export Backend Probing scripts ─────────────────────────────
         self._export_backend_probes(enriched, output_path)
@@ -406,7 +412,7 @@ tr:last-child td{{border-bottom:none}}
   <div id="kg-network" style="width:100%;height:500px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:2rem;"></div>
 
   <script>
-    // Safely decode the base64 JSON payload to prevent </script> injection crashes
+    // Safely decode the base64 JSON payload to prevent script injection crashes
     const graphData = JSON.parse(atob("{graph_b64}"));
     
     // Parse networkx json to vis.js format
@@ -424,8 +430,8 @@ tr:last-child td{{border-bottom:none}}
       
       return {{
         id: n.id,
-        label: n.type + "\\n" + (n.value ? String(n.value).substring(0, 25) : ""),
-        title: "ID: " + n.id + "\\nValue: " + (n.value || "") + "\\nType: " + n.type,
+        label: n.type + "\\n" + (n.value ? (typeof n.value === 'object' ? JSON.stringify(n.value).substring(0, 25) : String(n.value).substring(0, 25)) : ""),
+        title: "ID: " + n.id + "\\nValue: " + (n.value ? (typeof n.value === 'object' ? JSON.stringify(n.value) : String(n.value)) : "") + "\\nType: " + n.type,
         color: color,
         shape: shape,
         size: shape === "star" ? 30 : 15
@@ -472,7 +478,7 @@ tr:last-child td{{border-bottom:none}}
   <h2>📊 Risk Score Breakdown</h2>
   <table>
     <tr><th>Factor</th><th>Points</th></tr>
-    {self._breakdown_rows_html}
+    {breakdown_rows_html}
   </table>
 
 </div>
@@ -822,17 +828,6 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
   {steps_html}
   {cmd_html}
 </div>"""
-        
-        # Pre-build score breakdown table (moved from above)
-        risk = self.data["risk"]
-        breakdown_rows = ""
-        for factor, pts in sorted((risk.get("breakdown") or {}).items(), key=lambda x: -x[1]):
-            if pts > 0:
-                label = factor.replace("_", " ").title()
-                breakdown_rows += f"<tr><td>{label}</td><td>{pts}</td></tr>"
-                
-        self._breakdown_rows_html = breakdown_rows
-        
         return html
 
     def _build_frida_hook_html(self, hook_data: dict) -> str:
