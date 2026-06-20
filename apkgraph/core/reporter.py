@@ -1113,12 +1113,16 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 "Act as an expert Android reverse engineer. I am dynamically analyzing an Android app.
 Write a Frida hook in Javascript for the following target:
 
-1. Class Name: 'com.example.security.AuthValidator'
-2. Method Name: 'isTokenValid'
-3. Objective: I need to bypass this validation. Hook the method so that it intercepts 
+1. Target Class Name: 'com.example.security.AuthValidator'
+2. Target Method Name: 'isTokenValid'
+3. Protections Present: The app is using [INSERT PROTECTIONS E.G., RootBeer, DexGuard, Custom SSL Pinning] 
+   which might interfere with standard hooks.
+4. Objective: I need to bypass this validation. Hook the method so that it intercepts 
    the execution, ignores the original logic, and unconditionally returns 'true'.
 
 Please include a console.log() statement inside the hook so I know when it executes. 
+If the detected protections require specific Frida API methods (like intercepting native 
+calls or using specific ClassLoaders), please incorporate those techniques.
 Also, provide a code snippet showing how to deal with method overloading (e.g., using 
 .overload) if this method happens to have multiple variants."
 </pre>
