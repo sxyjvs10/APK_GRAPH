@@ -7,7 +7,7 @@ Additions:
 - Deduplication per (class, vulnerability) pair.
 - Severity classification: addJavascriptInterface = Critical, file access = High, JS = Medium.
 """
-from apkgraph.core.engine import BaseIntelligenceModule, SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM
+from apkgraph.core.engine import BaseIntelligenceModule, SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM, SEVERITY_LOW
 
 _WEBVIEW_SIGS = {
     "addJavascriptInterface":                ("Insecure JS Interface (potential RCE)",    SEVERITY_CRITICAL),
