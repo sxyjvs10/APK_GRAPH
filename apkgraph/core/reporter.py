@@ -424,9 +424,11 @@ tr:last-child td{{border-bottom:none}}
       let shape = "dot";
       
       if (n.type === "Application") {{ color = "#d29922"; shape = "star"; }}
-      else if (["Secret", "Endpoint", "DeepLink", "WebView"].includes(n.type)) {{ color = "#f85149"; shape = "hexagon"; }}
-      else if (n.type === "ExportedComponent") {{ color = "#e3b341"; shape = "triangle"; }}
+      else if (["Secret", "Endpoint", "DeepLink", "WebView", "SSLPinning", "RootDetection"].includes(n.type)) {{ color = "#f85149"; shape = "hexagon"; }}
+      else if (["ExportedComponent", "HiddenComponent"].includes(n.type)) {{ color = "#e3b341"; shape = "triangle"; }}
       else if (n.type === "IntentHijack") {{ color = "#f85149"; shape = "diamond"; }}
+      else if (n.type === "Package") {{ color = "#8b949e"; shape = "dot"; }}
+      else if (n.type === "Class") {{ color = "#c9d1d9"; shape = "box"; }}
       
       return {{
         id: n.id,
@@ -434,7 +436,8 @@ tr:last-child td{{border-bottom:none}}
         title: "ID: " + n.id + "\\nValue: " + (n.value ? (typeof n.value === 'object' ? JSON.stringify(n.value) : String(n.value)) : "") + "\\nType: " + n.type,
         color: color,
         shape: shape,
-        size: shape === "star" ? 30 : 15
+        size: shape === "star" ? 30 : (n.type === "Package" ? 10 : 15),
+        font: n.type === "Class" ? {{ color: "#24292e" }} : undefined
       }};
     }}));
 

@@ -34,6 +34,29 @@ class KnowledgeGraph:
     def _add_edge(self, src: str, dst: str, relation: str):
         self.graph.add_edge(src, dst, relation=relation)
 
+    def _get_package_node(self, class_name: str, app_node: str) -> str:
+        if not class_name or "." not in class_name.replace("/", "."):
+            return app_node
+            
+        cname = class_name.replace("/", ".").strip("L;")
+        parts = cname.split(".")
+        
+        parent = app_node
+        for i, part in enumerate(parts):
+            if not part: continue
+            node_id = "Pkg:" + ".".join(parts[:i+1])
+            is_leaf = (i == len(parts) - 1)
+            ntype = "Class" if is_leaf else "Package"
+            
+            if not self.graph.has_node(node_id):
+                self.graph.add_node(node_id, type=ntype, value=part, full_name=".".join(parts[:i+1]))
+                self.graph.add_edge(parent, node_id, relation="contains")
+                
+            parent = node_id
+            
+        return parent
+
+
     # ------------------------------------------------------------------
     def correlate(self, all_findings: dict):
         app_node = self._add_node("Application", "Root")
@@ -43,10 +66,11 @@ class KnowledgeGraph:
         if not isinstance(manifest, dict):
             manifest = {}
         for comp in manifest.get("exported_components", []):
+            parent = self._get_package_node(comp.get("name", ""), app_node)
             n = self._add_node("ExportedComponent", comp["name"],
                                comp_type=comp["type"],
                                source=comp.get("source", "unknown"))
-            self._add_edge(app_node, n, "exports")
+            self._add_edge(parent, n, "exports")
             self._exported_nodes.append(n)
 
         for perm in manifest.get("dangerous_permissions", []):
@@ -92,10 +116,11 @@ class KnowledgeGraph:
         for wv in (all_findings.get("WebView") or []):
             if not isinstance(wv, dict):
                 continue
+            parent = self._get_package_node(wv.get("class", ""), app_node)
             n = self._add_node("WebView", wv.get("class", ""),
                                vulnerability=wv.get("vulnerability", ""),
                                risk=wv.get("risk", ""))
-            self._add_edge(app_node, n, "uses_webview")
+            self._add_edge(parent, n, "uses_webview")
             self._webview_nodes.append(n)
 
         # ── JWT ───────────────────────────────────────────────────────
@@ -117,26 +142,27 @@ class KnowledgeGraph:
                                risk=crypto.get("risk", ""))
             self._add_edge(app_node, n, "uses_weak_crypto")
 
-        # ── ICC ───────────────────────────────────────────────────────
         for icc in (all_findings.get("ICC") or []):
             if not isinstance(icc, dict):
                 continue
+            parent = self._get_package_node(icc.get("component", ""), app_node)
             sink_path = icc.get("sink_path", [])
             sink_label = sink_path[-1] if sink_path else "unknown"
             n = self._add_node("ICCFlow", icc.get("component", ""),
                                entry_point=icc.get("entry_point", ""),
                                sink=sink_label,
                                risk=icc.get("risk", ""))
-            self._add_edge(app_node, n, "has_icc_flow")
+            self._add_edge(parent, n, "has_icc_flow")
 
         # ── HiddenFunction ────────────────────────────────────────────
         for hf in (all_findings.get("HiddenFunction") or []):
             if not isinstance(hf, dict):
                 continue
+            parent = self._get_package_node(hf.get("name", ""), app_node)
             n = self._add_node("HiddenComponent", hf.get("name", ""),
                                reason=hf.get("reason", ""),
                                exported=hf.get("exported", False))
-            self._add_edge(app_node, n, "has_hidden_component")
+            self._add_edge(parent, n, "has_hidden_component")
 
         # ── SDKFingerprint ────────────────────────────────────────────
         for sdk_name in (all_findings.get("SDKFingerprint") or []):
@@ -175,10 +201,25 @@ class KnowledgeGraph:
         for ih in (all_findings.get("IntentHijacking") or []):
             if not isinstance(ih, dict):
                 continue
+            parent = self._get_package_node(ih.get("component", ""), app_node)
             n = self._add_node("IntentHijack", ih.get("component", ""),
                                action=ih.get("action", ""),
                                risk=ih.get("risk", ""))
-            self._add_edge(app_node, n, "uses_implicit_intent")
+            self._add_edge(parent, n, "uses_implicit_intent")
+
+        # ── SSL Pinning ───────────────────────────────────────────────
+        for sp in (all_findings.get("SSLPinning", {}).get("implementations", []) or []):
+            if not isinstance(sp, dict): continue
+            parent = self._get_package_node(sp.get("class", ""), app_node)
+            n = self._add_node("SSLPinning", sp.get("name", ""), risk=sp.get("severity", ""))
+            self._add_edge(parent, n, "has_ssl_pinning")
+
+        # ── Root Detection ────────────────────────────────────────────
+        for rd in (all_findings.get("RootDetection", {}).get("implementations", []) or []):
+            if not isinstance(rd, dict): continue
+            parent = self._get_package_node(rd.get("class", ""), app_node)
+            n = self._add_node("RootDetection", rd.get("name", ""), risk=rd.get("severity", ""))
+            self._add_edge(parent, n, "has_root_detection")
 
         # ── Cross-module correlation edges ────────────────────────────
         # Secret → Endpoint (can authenticate)
