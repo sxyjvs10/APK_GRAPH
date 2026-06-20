@@ -383,11 +383,13 @@ tr:last-child td{{border-bottom:none}}
         <dt>SDK</dt>        <dd>min {apk_meta.get('min_sdk','N/A')} → target {apk_meta.get('target_sdk','N/A')}</dd>
         <dt>Generated</dt>  <dd>{self.timestamp}</dd>
       </dl>
-    </div>
-    <div class="gauge-wrap">
-      <div class="gauge-score">{score}</div>
-      <div class="gauge-label">{rating}</div>
-      <div class="gauge-bar"><div class="gauge-fill"></div></div>
+    <div style="text-align:right;">
+      <a href="{os.path.basename(output_path).replace('.html', '.json')}" target="_blank" style="background:var(--accent); color:var(--bg); text-decoration:none; padding:8px 15px; border-radius:4px; font-size:0.9rem; font-weight:600; display:inline-block; margin-bottom:1.5rem;">⬇ Download Raw JSON</a>
+      <div class="gauge-wrap">
+        <div class="gauge-score">{score}</div>
+        <div class="gauge-label">{rating}</div>
+        <div class="gauge-bar"><div class="gauge-fill"></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1036,7 +1038,35 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         # Sort scripts: High confidence first, then by number of matched targets
         matched = sorted(matched, key=lambda x: (x.get("confidence") == "High", x.get("matched_targets", 0)), reverse=True)
         
-        # Show only top 3 scripts
+        # Build summary table of ALL matched scripts
+        table_html = """
+        <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom: 2rem;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.85rem;">
+            <thead>
+              <tr style="background:var(--card2); border-bottom:1px solid var(--border)">
+                <th style="padding:10px">Script Name</th>
+                <th style="padding:10px">Confidence / Rating</th>
+                <th style="padding:10px">Hooks Matched</th>
+              </tr>
+            </thead>
+            <tbody>
+        """
+        for script in matched:
+            conf = script.get("confidence", "Medium")
+            badge = "danger" if conf == "High" else "warning"
+            name = script.get("script_name", "Unknown")
+            targets = f"{script.get('matched_targets', 0)}/{script.get('total_targets', 0)}"
+            table_html += f"""
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px; font-family:monospace">{self._esc(name)}</td>
+                <td style="padding:10px"><span class="badge badge-{badge}">{conf}</span></td>
+                <td style="padding:10px">{targets} targets</td>
+              </tr>
+            """
+        table_html += "</tbody></table></div>"
+        html += table_html
+        
+        # Show only top 3 scripts' full content
         top_scripts = matched[:3]
         omitted = len(matched) - 3
         

@@ -91,8 +91,8 @@ _RATING_COLOR = {
 @click.argument("apk_path", type=click.Path(exists=True))
 @click.option("--output",  "-o", default="report",
               help="Output report prefix (default: 'report')")
-@click.option("--format",  "-f", "fmt", default="html",
-              help="Output format: json, md, html, all (default: 'html')")
+@click.option("--format",  "-f", "fmt", default="all",
+              help="Output format: json, md, html, all (default: 'all')")
 @click.option("--modules", "-m", default="all",
               help="Comma-separated engine names, or 'all'.")
 @click.option("--timeout", "-t", default=120, type=int,
