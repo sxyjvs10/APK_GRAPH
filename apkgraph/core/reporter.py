@@ -407,7 +407,10 @@ tr:last-child td{{border-bottom:none}}
     const graphData = {graph_json};
     
     // Parse networkx json to vis.js format
-    const nodes = new vis.DataSet(graphData.nodes.map(n => {{
+    const rawNodes = graphData.nodes || [];
+    const rawLinks = graphData.links || [];
+
+    const nodes = new vis.DataSet(rawNodes.map(n => {{
       let color = "#58a6ff"; // default accent
       let shape = "dot";
       
@@ -426,7 +429,7 @@ tr:last-child td{{border-bottom:none}}
       }};
     }}));
 
-    const edges = new vis.DataSet(graphData.links.map(l => {{
+    const edges = new vis.DataSet(rawLinks.map(l => {{
       return {{
         from: l.source,
         to: l.target,
