@@ -241,7 +241,7 @@ class ReportGenerator:
         bypass_html = self._build_bypass_html(bypass_recs)
 
         #  Build Frida Hook Match HTML 
-        frida_hook_html = self._build_frida_hook_html(findings.get("FridaHookAnalysis", {}))
+        frida_hook_html = self._build_frida_hook_html(findings.get("FridaHookAnalysis", {}), findings)
 
         #  Build SCA HTML 
         sca_html = self._build_sca_html(findings.get("SDKFingerprint", []))
@@ -1027,7 +1027,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 </div>"""
         return html
 
-    def _build_frida_hook_html(self, hook_data: dict) -> str:
+    def _build_frida_hook_html(self, hook_data: dict, findings: dict) -> str:
         matched = hook_data.get("hooked_scripts_matched", [])
         if not matched:
             return ""
@@ -1093,7 +1093,21 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         if omitted > 0:
             html += f'<div style="text-align:center; padding: 10px; margin-bottom: 2rem; color: var(--muted); font-size: 0.9rem;"><em>... and {omitted} more verified scripts. Check the JSON report to try more options.</em></div>'
 
-        html += """
+        # Extract detected protections dynamically
+        protections = []
+        root_data = findings.get("RootDetection", {})
+        if root_data.get("detected"):
+            for impl in root_data.get("implementations", []):
+                protections.append(impl.get("name", "Unknown Root Check"))
+        
+        ssl_data = findings.get("SSLPinning", {})
+        if ssl_data.get("pinning"):
+            for impl in ssl_data.get("implementations", []):
+                protections.append(impl.get("name", "Unknown SSL Pinning"))
+
+        prot_str = ", ".join(protections) if protections else "None detected (Standard hooks should work)"
+
+        html += f"""
 <div class="path-card" style="border-color:var(--accent); background:var(--card); margin-top: 2rem;">
   <div class="path-title" style="color:var(--accent)">Create a Custom Hook (AI Assistant Guide)</div>
   <div class="path-meta">Need to dynamically bypass a specific function or dump its secrets? Provide this detailed context to an AI assistant (like ChatGPT, Claude, or Gemini) to generate a flawless Frida script:</div>
@@ -1115,7 +1129,7 @@ Write a Frida hook in Javascript for the following target:
 
 1. Target Class Name: 'com.example.security.AuthValidator'
 2. Target Method Name: 'isTokenValid'
-3. Protections Present: The app is using [INSERT PROTECTIONS E.G., RootBeer, DexGuard, Custom SSL Pinning] 
+3. Protections Present: The app is using [ {self._esc(prot_str)} ] 
    which might interfere with standard hooks.
 4. Objective: I need to bypass this validation. Hook the method so that it intercepts 
    the execution, ignores the original logic, and unconditionally returns 'true'.
