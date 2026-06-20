@@ -9,7 +9,7 @@ and Frida/Xposed self-detection.
 import re
 from apkgraph.core.engine import BaseIntelligenceModule, SEVERITY_HIGH, SEVERITY_MEDIUM, SEVERITY_LOW
 
-# ── Root detection signatures ─────────────────────────────────────────────
+#  Root detection signatures 
 _ROOT_CLASS_SIGS = {
     "com/scottyab/rootbeer": {
         "name": "RootBeer Library",
@@ -100,7 +100,7 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
 
         detected_sigs = set()
 
-        # ── Phase 1: Class-level scan ─────────────────────────────────────
+        #  Phase 1: Class-level scan 
         for cls_analysis in analysis.get_classes():
             cls_name = cls_analysis.name
             for sig, info in _ROOT_CLASS_SIGS.items():
@@ -120,7 +120,7 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
                     if "integrity" in sig:
                         result["play_integrity"] = True
 
-        # ── Phase 2: Method-level scan for custom root checks ─────────────
+        #  Phase 2: Method-level scan for custom root checks 
         for cls_analysis in analysis.get_classes():
             cls_name = cls_analysis.name
             if self.is_library(cls_name):
@@ -158,7 +158,7 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
                 except Exception:
                     pass
 
-        # ── Phase 3: String pool scan ─────────────────────────────────────
+        #  Phase 3: String pool scan 
         for s in raw_strings:
             if not s:
                 continue
@@ -169,7 +169,7 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
                 if frida_sig in s and frida_sig not in result["frida_xposed_detection"]:
                     result["frida_xposed_detection"].append(frida_sig)
 
-        # ── Phase 4: Build indicators from string pool ─────────────────────
+        #  Phase 4: Build indicators from string pool 
         result["indicators"] = (
             (["RootBeer"]        if any("rootbeer" in i["name"].lower() for i in result["implementations"]) else []) +
             (["SafetyNet"]       if result["safetynet"]       else []) +

@@ -108,9 +108,9 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
     APKGraph v2.0 — Android Attack Surface Intelligence Platform
     """
     console.print()
-    console.print("╭──────────────────────────────────────────────────────────────────╮", style="bold blue")
-    console.print("│  [bold white]APKGraph v2.0[/]  |  [cyan]Android Attack Surface Intelligence Platform[/]  │", style="bold blue")
-    console.print("╰──────────────────────────────────────────────────────────────────╯", style="bold blue")
+    console.print("", style="bold blue")
+    console.print("  [bold white]APKGraph v2.0[/]  |  [cyan]Android Attack Surface Intelligence Platform[/]  ", style="bold blue")
+    console.print("", style="bold blue")
     console.print()
 
     if modules.lower() == "all":
@@ -137,7 +137,7 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
         ) as progress:
             task = progress.add_task("[bold cyan]Phase 1/7: Extracting & Decompiling APK...[/]", total=100)
 
-            # ── 1. Load APK ────────────────────────────────────────────────────────
+            #  1. Load APK 
             processor = APKProcessor(apk_path)
             apk_meta = processor.process()
             
@@ -152,7 +152,7 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
             console.print(f"[*] Processing APK: [bold white]{os.path.basename(apk_path)}[/]")
             console.print(f"  Package [bold cyan]{app_pkg}[/]  {app_name}  SDK {sdk_min}→{sdk_tgt}\n")
 
-            # ── 2. Run Engines Parallel ────────────────────────────────────────────
+            #  2. Run Engines Parallel 
             all_findings  = {}
             engine_status = {}
             total_engines = len(selected_modules)
@@ -184,26 +184,26 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
                     step_advance = _PHASE_ENGINES / total_engines
                     progress.update(task, advance=step_advance)
 
-            # ── 3. Knowledge Graph ─────────────────────────────────────────────────
+            #  3. Knowledge Graph 
             progress.update(task, description="[bold cyan]Phase 3/7: Knowledge Graph...[/]")
             kg = KnowledgeGraph()
             kg.correlate(all_findings)
             graph_summary = f"Nodes {kg.graph.number_of_nodes()} Edges {kg.graph.number_of_edges()}"
             progress.update(task, advance=_PHASE_GRAPH)
 
-            # ── 4. Attack Paths ────────────────────────────────────────────────────
+            #  4. Attack Paths 
             progress.update(task, description="[bold cyan]Phase 4/7: Attack Paths...[/]")
             predictor = AttackPathPredictor(kg.graph)
             paths = predictor.predict()
             progress.update(task, advance=_PHASE_PREDICTOR)
 
-            # ── 5. Risk Scorer ─────────────────────────────────────────────────────
+            #  5. Risk Scorer 
             progress.update(task, description="[bold cyan]Phase 5/7: Scoring...[/]")
             scorer = RiskScorer(all_findings, paths)
             risk = scorer.calculate()
             progress.update(task, advance=_PHASE_SCORER)
 
-            # ── 6. Bypass Recommender ──────────────────────────────────────────────
+            #  6. Bypass Recommender 
             progress.update(task, description="[bold cyan]Phase 6/7: Bypass Recommender...[/]")
             try:
                 be = BypassEngine()
@@ -213,7 +213,7 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
                 if verbose:
                     console.print(f"[yellow]  BypassEngine warning: {e}[/yellow]")
 
-            # ── 7. Reports ─────────────────────────────────────────────────────────
+            #  7. Reports 
             progress.update(task, description="[bold cyan]Phase 7/7: Reports...[/]")
             report_data = {
                 "findings":      all_findings,
@@ -236,9 +236,9 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
                 reporter.generate_html(f"{output}.html")
                 console.print(f"[+] HTML report:     [cyan]{output}.html[/]")
             
-            progress.update(task, completed=100, description="[bold green]Scan complete ✔[/]")
+            progress.update(task, completed=100, description="[bold green]Scan complete [/]")
 
-        # ── Output summary table ────────────────────────────────────────────────
+        #  Output summary table 
         console.print("\n")
         table = Table(title="Engine Results", show_header=True, header_style="bold magenta")
         table.add_column("#", justify="right")
@@ -247,7 +247,7 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
         table.add_column("Findings", justify="right")
 
         for idx, (eng_name, eng_stat) in enumerate(engine_status.items(), 1):
-            stat_str = "[green]✔ ok[/]" if eng_stat == "ok" else f"[red]✖ {eng_stat}[/]"
+            stat_str = "[green] ok[/]" if eng_stat == "ok" else f"[red] {eng_stat}[/]"
             res = all_findings.get(eng_name, {})
             # try to find a count
             count = 0
@@ -262,10 +262,10 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
         console.print()
 
         r_col = _RATING_COLOR.get(risk['rating'], "bold white")
-        console.print(f"╭{'─'*28} [bold green]✔ Analysis Complete[/] {'─'*29}╮")
-        console.print(f"│    Risk Score  {str(risk['score']).rjust(3)}/100   Rating [{r_col}]{risk['rating'].ljust(43)}[/]│")
-        console.print(f"│    Attack Paths {str(len(paths)).ljust(10)} Graph {graph_summary.ljust(40)}│")
-        console.print(f"╰{'─'*78}╯")
+        console.print(f"{''*28} [bold green] Analysis Complete[/] {''*29}")
+        console.print(f"    Risk Score  {str(risk['score']).rjust(3)}/100   Rating [{r_col}]{risk['rating'].ljust(43)}[/]")
+        console.print(f"    Attack Paths {str(len(paths)).ljust(10)} Graph {graph_summary.ljust(40)}")
+        console.print(f"{''*78}")
         console.print()
 
         if fuzz:
@@ -276,22 +276,22 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
                 console.print(f"[bold green][+] Fuzzer generated at: {script_path}[/bold green]")
                 console.print(f"    (Run with: python3 {script_path})")
             else:
-                console.print("[yellow]⚠ No exported components found to fuzz.[/yellow]")
+                console.print("[yellow] No exported components found to fuzz.[/yellow]")
 
         if dynamic:
             runner = DynamicRunner(apk_path, apk_meta.get("package", "com.target.app"), bypass_recs, all_findings)
             if runner.check_prerequisites():
                 runner.start_autopwn()
                 
-        # ── Final Report Link ───────────────────────────────────────────────────
+        #  Final Report Link 
         if fmt in ("html", "all"):
             import pathlib
             abs_path = os.path.abspath(f"{output}.html")
             uri = pathlib.Path(abs_path).as_uri()
-            console.print(f"\n[bold green]🔗 HTML Report available at:[/] [underline cyan]{uri}[/]\n")
+            console.print(f"\n[bold green] HTML Report available at:[/] [underline cyan]{uri}[/]\n")
 
     except Exception as e:
-        console.print(f"\n[bold red]✖ Analysis failed: {str(e)}[/]")
+        console.print(f"\n[bold red] Analysis failed: {str(e)}[/]")
         if verbose:
             import traceback
             traceback.print_exc()

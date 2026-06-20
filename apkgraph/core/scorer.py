@@ -11,7 +11,7 @@ Fixes:
 from apkgraph.core.engine import SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM, SEVERITY_LOW
 
 
-# ── Factor weights (tweaked to match real-world severity distributions) ─────
+#  Factor weights (tweaked to match real-world severity distributions) 
 _W = {
     "exported_activity":    8,   # exported activity with intent-filter
     "exported_service":     7,
@@ -53,7 +53,7 @@ class RiskScorer:
         self.breakdown[key] = self.breakdown.get(key, 0) + pts
 
     def calculate(self) -> dict:
-        # ── Manifest ───────────────────────────────────────────────────
+        #  Manifest 
         manifest = self.findings.get("Manifest", {}) or {}
         for comp in manifest.get("exported_components", []):
             t = comp.get("type", "activity")
@@ -61,15 +61,15 @@ class RiskScorer:
         for _ in manifest.get("dangerous_permissions", []):
             self._add("dangerous_permission", 1)
 
-        # ── Secrets ────────────────────────────────────────────────────
+        #  Secrets 
         secrets = self.findings.get("Secret", []) or []
         self._add("secret", len(secrets))
 
-        # ── JWT ────────────────────────────────────────────────────────
+        #  JWT 
         jwts = self.findings.get("JWT", []) or []
         self._add("jwt", len(jwts))
 
-        # ── Endpoints ──────────────────────────────────────────────────
+        #  Endpoints 
         endpoints = self.findings.get("Endpoint", {}) or {}
         url_count = len(endpoints.get("urls", []))
         self._add("endpoint", min(url_count, 10))  # cap to avoid score inflation
@@ -78,13 +78,13 @@ class RiskScorer:
         if endpoints.get("websocket"):
             self._add("endpoint")
 
-        # ── Deep Links ─────────────────────────────────────────────────
+        #  Deep Links 
         deeplinks = self.findings.get("DeepLink", {}) or {}
         self._add("deep_link", len(deeplinks.get("schemes", [])))
         if deeplinks.get("app_links"):
             self._add("app_link")
 
-        # ── Crypto ─────────────────────────────────────────────────────
+        #  Crypto 
         crypto_list = self.findings.get("Crypto", []) or []
         for c in crypto_list:
             if isinstance(c, dict):
@@ -93,17 +93,17 @@ class RiskScorer:
                 else:
                     self._add("crypto_weak_algo")
 
-        # ── SSL Pinning (absent = adds risk) ───────────────────────────
+        #  SSL Pinning (absent = adds risk) 
         ssl = self.findings.get("SSLPinning", {}) or {}
         if not ssl.get("pinning", False):
             self._add("ssl_no_pinning")
 
-        # ── Root Detection (absent = adds risk) ────────────────────────
+        #  Root Detection (absent = adds risk) 
         root = self.findings.get("RootDetection", {}) or {}
         if not root.get("detected", False):
             self._add("root_detection_absent")
 
-        # ── WebView ────────────────────────────────────────────────────
+        #  WebView 
         webviews = self.findings.get("WebView", []) or []
         for wv in webviews:
             if not isinstance(wv, dict):
@@ -116,39 +116,39 @@ class RiskScorer:
             elif "setJavaScriptEnabled" in vuln:
                 self._add("webview_js")
 
-        # ── ICC ────────────────────────────────────────────────────────
+        #  ICC 
         icc_list = self.findings.get("ICC", []) or []
         self._add("icc_flow", len(icc_list))
 
-        # ── HiddenFunction ─────────────────────────────────────────────
+        #  HiddenFunction 
         hidden = self.findings.get("HiddenFunction", []) or []
         self._add("hidden_component", len(hidden))
 
-        # ── NetworkSecurityConfig ──────────────────────────────────────
+        #  NetworkSecurityConfig 
         nsc = self.findings.get("NetworkSecurityConfig", {}) or {}
         if nsc.get("cleartext_permitted"):
             self._add("cleartext_traffic")
 
-        # ── Environment ────────────────────────────────────────────────
+        #  Environment 
         env_list = self.findings.get("Environment", []) or []
         self._add("env_disclosure", min(len(env_list), 5))
 
-        # ── DataStorage ────────────────────────────────────────────────
+        #  DataStorage 
         ds_list = self.findings.get("DataStorage", []) or []
         self._add("data_storage", len(ds_list))
 
-        # ── IntentHijacking ────────────────────────────────────────────
+        #  IntentHijacking 
         ih_list = self.findings.get("IntentHijacking", []) or []
         self._add("intent_hijack", len(ih_list))
 
-        # ── Attack Paths ───────────────────────────────────────────────
+        #  Attack Paths 
         for path in self.paths:
             if path.get("confidence") == "Critical" or path.get("cvss_impact") == "Critical":
                 self._add("attack_path_critical")
             elif path.get("confidence") == "High":
                 self._add("attack_path_high")
 
-        # ── Final Score ────────────────────────────────────────────────
+        #  Final Score 
         raw = sum(self.breakdown.values())
         score = min(int(raw), 100)
 

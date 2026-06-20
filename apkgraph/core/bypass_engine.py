@@ -126,7 +126,7 @@ class BypassEngine:
         """
         recs = {}
 
-        # ── SSL Pinning ────────────────────────────────────────────────────
+        #  SSL Pinning 
         ssl_data = findings.get("SSLPinning") or {}
         if isinstance(ssl_data, dict) and ssl_data.get("pinning"):
             impls = ssl_data.get("implementations", [])
@@ -147,7 +147,7 @@ class BypassEngine:
                 ],
             }
 
-        # ── Root Detection ────────────────────────────────────────────────
+        #  Root Detection 
         root_data = findings.get("RootDetection") or {}
         if isinstance(root_data, dict) and root_data.get("detected"):
             recs["root"] = {
@@ -169,7 +169,7 @@ class BypassEngine:
                 ],
             }
 
-        # ── Proxy Detection ───────────────────────────────────────────────
+        #  Proxy Detection 
         proxy_data = findings.get("ProxyDetection") or {}
         if isinstance(proxy_data, dict) and proxy_data.get("detected"):
             recs["proxy"] = {
@@ -188,7 +188,7 @@ class BypassEngine:
                 ],
             }
 
-        # ── User-provided scripts (custom categories) ─────────────────────
+        #  User-provided scripts (custom categories) 
         for script in self.all_scripts:
             cats = script.get("categories", [])
             if not any(c in recs for c in cats):

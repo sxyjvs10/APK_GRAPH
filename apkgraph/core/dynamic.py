@@ -30,27 +30,27 @@ class DynamicRunner:
 
     def check_prerequisites(self) -> bool:
         """Check if adb and frida are available, and a device is connected."""
-        console.print("\n[bold cyan]── Hybrid Dynamic Execution (Auto-Pwn) ──[/]")
+        console.print("\n[bold cyan] Hybrid Dynamic Execution (Auto-Pwn) [/]")
         
         # Check adb
         adb_path = shutil.which("adb") or shutil.which("adb.exe")
         if not adb_path and not os.path.exists("adb.exe"):
-            console.print("[red]❌ ADB not found in PATH or current directory.[/]")
+            console.print("[red] ADB not found in PATH or current directory.[/]")
             return False
             
         # Check frida
         if not shutil.which("frida") and not shutil.which("frida.exe"):
-            console.print("[red]❌ frida-tools not found in PATH.[/]")
+            console.print("[red] frida-tools not found in PATH.[/]")
             return False
             
         # Check connected devices
         adb_devices = self._run_cmd(["adb", "devices"])
         device_count = sum(1 for line in adb_devices.split("\n") if "device" in line and "List" not in line)
         if device_count == 0:
-            console.print("[red]❌ No Android device connected via ADB.[/]")
+            console.print("[red] No Android device connected via ADB.[/]")
             return False
             
-        console.print("[green]✔ Prerequisite checks passed (ADB + Frida + Device connected)[/]")
+        console.print("[green] Prerequisite checks passed (ADB + Frida + Device connected)[/]")
         self.device_connected = True
         return True
 
@@ -63,11 +63,11 @@ class DynamicRunner:
             console.print(f"[*] Installing {self.apk_path} on device...")
             install_result = self._run_cmd(["adb", "install", "-r", self.apk_path])
             if "Success" in install_result:
-                console.print("[green]✔ Installation successful[/]")
+                console.print("[green] Installation successful[/]")
             else:
-                console.print(f"[yellow]⚠ Installation might have failed: {install_result}[/]")
+                console.print(f"[yellow] Installation might have failed: {install_result}[/]")
         else:
-            console.print("[green]✔ Target app already installed[/]")
+            console.print("[green] Target app already installed[/]")
 
     def start_autopwn(self):
         """Build the ultimate Frida command using the recommended scripts and launch it."""
@@ -98,7 +98,7 @@ class DynamicRunner:
             scripts_to_load.append(deobf_script_path)
                     
         if not scripts_to_load:
-            console.print("[yellow]⚠ No static protections found that require a bypass script. Spawning app normally.[/]")
+            console.print("[yellow] No static protections found that require a bypass script. Spawning app normally.[/]")
         
         # Build frida command
         cmd = ["frida", "-U", "-f", self.package_name]
@@ -106,10 +106,10 @@ class DynamicRunner:
             if os.path.exists(script):
                 cmd.extend(["-l", script])
             else:
-                console.print(f"[yellow]⚠ Warning: Recommended bypass script {script} not found on disk.[/]")
+                console.print(f"[yellow] Warning: Recommended bypass script {script} not found on disk.[/]")
             
         cmd_str = " ".join(cmd)
-        console.print(f"\n[bold green]🚀 Launching Auto-Pwn Hybrid Execution![/]")
+        console.print(f"\n[bold green] Launching Auto-Pwn Hybrid Execution![/]")
         console.print(f"   [dim]{cmd_str}[/]")
         console.print("[yellow]   (Press Ctrl+C to stop the dynamic session)[/yellow]\n")
         
@@ -117,6 +117,6 @@ class DynamicRunner:
             # We use Popen without pipes so the user can interact with the Frida REPL
             subprocess.run(cmd)
         except KeyboardInterrupt:
-            console.print("\n[bold green]✔ Dynamic execution session ended.[/]")
+            console.print("\n[bold green] Dynamic execution session ended.[/]")
         except Exception as e:
-            console.print(f"[bold red]❌ Failed to run Frida: {e}[/]")
+            console.print(f"[bold red] Failed to run Frida: {e}[/]")

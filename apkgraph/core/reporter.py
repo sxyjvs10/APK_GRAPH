@@ -21,8 +21,8 @@ from apkgraph.core.engine import SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDI
 from apkgraph.core.reproduction import enrich_findings
 
 _SEV_EMOJI = {
-    "Critical": "🔴", "High": "🟠", "Medium": "🟡",
-    "Low": "🟢", "Info": "🔵", "Informational": "🔵",
+    "Critical": "", "High": "🟠", "Medium": "🟡",
+    "Low": "🟢", "Info": "", "Informational": "",
 }
 _SEV_COLOR = {
     "Critical": "#e74c3c", "High": "#e67e22", "Medium": "#f39c12",
@@ -48,7 +48,7 @@ class ReportGenerator:
         self.data      = data
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # 
     def generate_json(self, output_path: str):
         apk_meta  = self.data.get("apk_meta", {})
         findings  = self.data["findings"]
@@ -65,7 +65,7 @@ class ReportGenerator:
             json.dump(out, f, indent=2, default=str)
         print(f"[+] JSON report:     {output_path}")
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # 
     def generate_markdown(self, output_path: str):
         findings     = self.data["findings"]
         risk         = self.data["risk"]
@@ -83,13 +83,13 @@ class ReportGenerator:
             md.append(f"> **SDK:** min={apk_meta.get('min_sdk','N/A')} target={apk_meta.get('target_sdk','N/A')}  \n")
         md.append("\n---\n\n")
 
-        # ── Risk Score ──────────────────────────────────────────────────
-        emoji = _SEV_EMOJI.get(risk["rating"], "❓")
+        #  Risk Score 
+        emoji = _SEV_EMOJI.get(risk["rating"], "")
         md.append(f"## {emoji} Risk Score: {risk['score']}/100 — {risk['rating']}\n\n")
 
-        # ── Attack Paths ────────────────────────────────────────────────
+        #  Attack Paths 
         if paths:
-            md.append("---\n\n## ⚔️ Attack Paths\n\n")
+            md.append("---\n\n##  Attack Paths\n\n")
             for i, p in enumerate(paths, 1):
                 md.append(f"### {i}. {p['name']}\n\n")
                 md.append(f"| Field | Value |\n|-------|-------|\n")
@@ -99,17 +99,17 @@ class ReportGenerator:
                 md.append(f"| Target | {p.get('target_type','N/A')}: {str(p.get('target_value',''))[:60]} |\n\n")
                 md.append(f"**Description:** {p['description']}\n\n")
 
-        # ── SCA Section ──────────────────────────────────────────────────
+        #  SCA Section 
         sca_findings = findings.get("SDKFingerprint", [])
         if sca_findings:
-            md.append("---\n\n## 📦 Software Composition Analysis (SCA)\n\n")
+            md.append("---\n\n##  Software Composition Analysis (SCA)\n\n")
             md.append("| Component | Version | Vulnerability | Severity |\n")
             md.append("|-----------|---------|---------------|----------|\n")
             for sca in sorted(sca_findings, key=lambda x: (x.get('vulnerability') is None, x.get('sdk'))):
                 vuln = sca.get("vulnerability")
                 if vuln:
                     sev = vuln["severity"]
-                    sev_icon = {"Critical":"🔴", "High":"🔴", "Medium":"🟡", "Low":"🔵"}.get(sev, "🔵")
+                    sev_icon = {"Critical":"", "High":"", "Medium":"🟡", "Low":""}.get(sev, "")
                     v_str = f"{sev_icon} {vuln['cve_desc']}"
                 else:
                     sev = "Info"
@@ -117,16 +117,16 @@ class ReportGenerator:
                 md.append(f"| {sca['sdk']} | {sca.get('version', 'Unknown')} | {v_str} | {sev} |\n")
             md.append("\n")
 
-        # ── Deobfuscation Section ────────────────────────────────────────
+        #  Deobfuscation Section 
         deobf_findings = findings.get("Deobfuscation", {}).get("detected_methods", [])
         if deobf_findings:
-            md.append("---\n\n## 🔮 Advanced Deobfuscation / String Encryption\n\n")
+            md.append("---\n\n##  Advanced Deobfuscation / String Encryption\n\n")
             md.append("The following methods were statically identified as potential string decryption routines. Hook them with Frida to dump all dynamically decrypted strings at runtime.\n\n")
             md.append("| Target Class | Target Method | Reason | X-Refs | Severity |\n")
             md.append("|--------------|---------------|--------|--------|----------|\n")
             for m in sorted(deobf_findings, key=lambda x: x.get('xref_count', 0), reverse=True):
                 sev = m.get("severity", "Info")
-                sev_icon = {"Critical":"🔴", "High":"🔴", "Medium":"🟡", "Low":"🔵"}.get(sev, "🔵")
+                sev_icon = {"Critical":"", "High":"", "Medium":"🟡", "Low":""}.get(sev, "")
                 md.append(f"| `{m['class']}` | `{m['method']}` | {m['reason']} | {m['xref_count']} | {sev_icon} {sev} |\n")
             
             md.append("\n**Recommended Frida Hook Example:**\n")
@@ -134,8 +134,8 @@ class ReportGenerator:
             md.append(deobf_findings[0]["frida_hook"])
             md.append("\n```\n\n")
 
-        # ── Findings with Reproduction ───────────────────────────────────
-        md.append("---\n\n## 🔎 Findings & Reproduction Steps\n\n")
+        #  Findings with Reproduction 
+        md.append("---\n\n##  Findings & Reproduction Steps\n\n")
 
         _ORDER = [
             ("JWT",          "JWT Tokens — Hardcoded Authentication"),
@@ -202,7 +202,7 @@ class ReportGenerator:
                 # Remediation
                 remed = _REMEDIATION.get(key, _REMEDIATION.get("Secret", ""))
                 if remed:
-                    md.append(f"> 🔧 **Remediation:** {remed}\n\n")
+                    md.append(f">  **Remediation:** {remed}\n\n")
 
                 md.append("---\n\n")
 
@@ -212,7 +212,7 @@ class ReportGenerator:
             f.write("".join(md))
         print(f"[+] Markdown report: {output_path}")
 
-    # ──────────────────────────────────────────────────────────────────────────
+    # 
     def generate_html(self, output_path: str):
         findings      = self.data["findings"]
         risk          = self.data["risk"]
@@ -232,30 +232,30 @@ class ReportGenerator:
         endpoint_count = len((enriched.get("Endpoint") or {}).get("urls") or [])
         icc_count      = len(enriched.get("ICC") or [])
 
-        # ── Build finding cards HTML ─────────────────────────────────────
+        #  Build finding cards HTML 
         finding_cards_html = self._build_finding_cards(enriched, apk_meta.get("package",""))
         attack_paths_html  = self._build_attack_paths(paths)
 
-        # ── Build bypass recommendations HTML ────────────────────────────
+        #  Build bypass recommendations HTML 
         bypass_recs = self.data.get("bypass_recs", {})
         bypass_html = self._build_bypass_html(bypass_recs)
 
-        # ── Build Frida Hook Match HTML ────────────────────────────────
+        #  Build Frida Hook Match HTML 
         frida_hook_html = self._build_frida_hook_html(findings.get("FridaHookAnalysis", {}))
 
-        # ── Build SCA HTML ─────────────────────────────────────────────
+        #  Build SCA HTML 
         sca_html = self._build_sca_html(findings.get("SDKFingerprint", []))
 
-        # ── Build Deobfuscation HTML ───────────────────────────────────
+        #  Build Deobfuscation HTML 
         deobf_html = self._build_deobf_html(findings.get("Deobfuscation", {}).get("detected_methods", []))
-        # ── Pre-build score breakdown table ────────────────────────────────
+        #  Pre-build score breakdown table 
         breakdown_rows_html = ""
         for factor, pts in sorted((risk.get("breakdown") or {}).items(), key=lambda x: -x[1]):
             if pts > 0:
                 label = factor.replace("_", " ").title()
                 breakdown_rows_html += f"<tr><td>{label}</td><td>{pts}</td></tr>"
 
-        # ── Export Backend Probing scripts ─────────────────────────────
+        #  Export Backend Probing scripts 
         self._export_backend_probes(enriched, output_path)
 
         graph_json_str = json.dumps(self.data.get("graph", {}))
@@ -280,7 +280,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgro
 a{{color:var(--accent);text-decoration:none}}
 code,pre{{font-family:'JetBrains Mono','Fira Code',monospace;font-size:.82rem}}
 
-/* ── Header ── */
+/*  Header  */
 .header{{background:linear-gradient(135deg,#161b22 0%,#0d1117 100%);border-bottom:1px solid var(--border);padding:2rem 2.5rem}}
 .header-inner{{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:2rem;flex-wrap:wrap}}
 .brand{{font-size:1.6rem;font-weight:800;color:var(--accent);letter-spacing:-.5px}}
@@ -289,27 +289,27 @@ code,pre{{font-family:'JetBrains Mono','Fira Code',monospace;font-size:.82rem}}
 .meta-grid dt{{color:var(--muted)}}
 .meta-grid dd{{color:var(--text);font-weight:500}}
 
-/* ── Gauge ── */
+/*  Gauge  */
 .gauge-wrap{{text-align:center;min-width:180px}}
 .gauge-score{{font-size:4.5rem;font-weight:900;color:{gauge_color};line-height:1}}
 .gauge-label{{font-size:1rem;color:{gauge_color};font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:.3rem 0}}
 .gauge-bar{{height:8px;background:var(--border);border-radius:4px;width:160px;margin:.6rem auto 0;overflow:hidden}}
 .gauge-fill{{height:100%;background:{gauge_color};width:{score}%;border-radius:4px}}
 
-/* ── Main layout ── */
+/*  Main layout  */
 .main{{max-width:1200px;margin:0 auto;padding:2rem 2.5rem}}
 
-/* ── Stat Cards ── */
+/*  Stat Cards  */
 .cards{{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.8rem;margin:1.5rem 0 2rem}}
 .card{{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;text-align:center}}
 .card-num{{font-size:2rem;font-weight:800;color:var(--accent)}}
 .card-label{{font-size:.72rem;color:var(--muted);margin-top:.2rem;text-transform:uppercase;letter-spacing:.5px}}
 
-/* ── Section headings ── */
+/*  Section headings  */
 h2{{font-size:1.1rem;font-weight:700;color:var(--text);margin:2rem 0 1rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}}
 h3{{font-size:.95rem;font-weight:600;color:var(--muted);margin:1.5rem 0 .5rem;text-transform:uppercase;letter-spacing:.5px}}
 
-/* ── Finding Card ── */
+/*  Finding Card  */
 .finding{{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;overflow:hidden}}
 .finding-header{{display:flex;align-items:center;gap:.8rem;padding:.85rem 1.1rem;cursor:pointer;user-select:none}}
 .finding-header:hover{{background:var(--card2)}}
@@ -324,32 +324,32 @@ h3{{font-size:.95rem;font-weight:600;color:var(--muted);margin:1.5rem 0 .5rem;te
 .finding-body{{display:none;padding:1.1rem;border-top:1px solid var(--border)}}
 .finding-body.open{{display:block}}
 
-/* ── Finding body sections ── */
+/*  Finding body sections  */
 .field-grid{{display:grid;grid-template-columns:140px 1fr;gap:.4rem .8rem;font-size:.82rem;margin-bottom:1rem}}
 .field-grid dt{{color:var(--muted);font-weight:500}}
 .field-grid dd{{color:var(--text);word-break:break-all}}
 .evidence-block{{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;padding:.6rem .9rem;font-family:monospace;font-size:.78rem;color:#79c0ff;word-break:break-all;margin:.3rem 0 1rem}}
 
-/* ── Steps ── */
+/*  Steps  */
 .steps{{margin:.3rem 0 1rem;padding-left:1.2rem}}
 .steps li{{font-size:.83rem;margin:.3rem 0;color:var(--muted)}}
 .steps li code{{color:var(--accent);background:var(--code-bg);padding:.05rem .3rem;border-radius:3px}}
 
-/* ── PoC block ── */
+/*  PoC block  */
 .poc-wrap{{position:relative;margin:.5rem 0 1rem}}
 .poc-label{{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;display:flex;justify-content:space-between;align-items:center}}
 .copy-btn{{background:var(--card2);border:1px solid var(--border);color:var(--muted);padding:.15rem .5rem;border-radius:4px;cursor:pointer;font-size:.7rem;transition:all .15s}}
 .copy-btn:hover{{color:var(--text);border-color:var(--accent)}}
 .poc{{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:.8rem 1rem;overflow-x:auto;white-space:pre;color:#a5d6ff;font-size:.78rem;line-height:1.5}}
 
-/* ── CVSS ── */
+/*  CVSS  */
 .cvss{{font-size:.72rem;color:var(--muted);margin-top:.3rem;font-family:monospace}}
 
-/* ── Remediation ── */
+/*  Remediation  */
 .remediation{{background:#3fb95010;border:1px solid #3fb95030;border-radius:4px;padding:.6rem .9rem;font-size:.82rem;color:#3fb950;margin-top:.8rem}}
-.remediation::before{{content:'🔧 Remediation: ';font-weight:700}}
+.remediation::before{{content:' Remediation: ';font-weight:700}}
 
-/* ── Attack path cards ── */
+/*  Attack path cards  */
 .path-card{{background:var(--card);border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:.8rem;border-left:3px solid}}
 .path-card-crit{{border-color:var(--crit)}}
 .path-card-high{{border-color:var(--high)}}
@@ -359,13 +359,13 @@ h3{{font-size:.95rem;font-weight:600;color:var(--muted);margin:1.5rem 0 .5rem;te
 .path-desc{{font-size:.83rem;color:var(--text)}}
 .path-steps{{font-family:monospace;font-size:.75rem;color:var(--accent);margin-top:.4rem}}
 
-/* ── Score breakdown table ── */
+/*  Score breakdown table  */
 table{{width:100%;border-collapse:collapse;font-size:.82rem}}
 th{{background:var(--card2);padding:.5rem .7rem;text-align:left;border-bottom:2px solid var(--border);color:var(--muted);text-transform:uppercase;font-size:.72rem;letter-spacing:.5px}}
 td{{padding:.4rem .7rem;border-bottom:1px solid var(--border)}}
 tr:last-child td{{border-bottom:none}}
 
-/* ── Footer ── */
+/*  Footer  */
 .footer{{text-align:center;padding:2rem;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border);margin-top:3rem}}
 </style>
 </head>
@@ -405,7 +405,7 @@ tr:last-child td{{border-bottom:none}}
     <div class="card" style="border-color:var(--accent)"><div class="card-num" style="color:var(--accent)">{len(findings.get('FridaHookAnalysis', {}).get('hooked_scripts_matched', []))}</div><div class="card-label">Verified Hooks</div></div>
   </div>
 
-  <h2>🕸️ Attack Surface Knowledge Graph</h2>
+  <h2>Attack Surface Knowledge Graph</h2>
   <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">
     Interactive visualization of all vulnerabilities and their paths throughout the application. Drag nodes to explore.
   </p>
@@ -417,7 +417,7 @@ tr:last-child td{{border-bottom:none}}
     
     <label style="font-size: 0.9rem; cursor: pointer;"><input type="checkbox" id="filter-critical"> High/Critical Only</label>
     <label style="font-size: 0.9rem; cursor: pointer;"><input type="checkbox" id="filter-packages" checked> Show Packages</label>
-    <span style="font-size: 0.8rem; color: var(--muted); margin-left: auto;">💡 Double-click a package to collapse/expand its children</span>
+    <span style="font-size: 0.8rem; color: var(--muted); margin-left: auto;"> Double-click a package to collapse/expand its children</span>
   </div>
 
   <div style="display: flex; gap: 10px; margin-bottom:2rem; height:600px;">
@@ -611,16 +611,16 @@ tr:last-child td{{border-bottom:none}}
 
   {sca_html}
 
-  <h2>⚔️ Attack Path Predictions</h2>
+  <h2>Attack Path Predictions</h2>
   {attack_paths_html}
 
-  <h2>🔎 Threats &amp; Reproduction Steps</h2>
+  <h2>Threats &amp; Reproduction Steps</h2>
   <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">
     Click any finding to expand exact reproduction steps and ready-to-run PoC commands.
   </p>
   {finding_cards_html}
 
-  <h2>📊 Risk Score Breakdown</h2>
+  <h2>Risk Score Breakdown</h2>
   <table>
     <tr><th>Factor</th><th>Points</th></tr>
     {breakdown_rows_html}
@@ -660,7 +660,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             f.write(html)
         print(f"[+] HTML report:     {output_path}")
 
-    # ── HTML building helpers ────────────────────────────────────────────────
+    #  HTML building helpers 
     def _build_attack_paths(self, paths: list) -> str:
         if not paths:
             return '<p style="color:var(--muted);font-size:.85rem">No attack paths predicted.</p>'
@@ -706,7 +706,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             """
             
         return f"""
-        <h2>🔮 Advanced Deobfuscation / String Encryption</h2>
+        <h2>Advanced Deobfuscation / String Encryption</h2>
         <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">
           The following methods were statically identified as potential string decryption routines. Hook them with Frida to dump all dynamically decrypted strings at runtime.
         </p>
@@ -753,7 +753,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             """
             
         return f"""
-        <h2>📦 Software Composition Analysis</h2>
+        <h2>Software Composition Analysis</h2>
         <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom: 2rem;">
           <table style="width:100%; border-collapse:collapse; text-align:left;">
             <thead>
@@ -804,18 +804,18 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         counter = 0
 
         sections = [
-            ("Manifest",    "📦 M1: Improper Platform Usage (Exported Components)", lambda d: d.get("exported_components",[]) if isinstance(d,dict) else []),
-            ("WebView",     "🌐 M1 & M7: Client Code Quality (WebViews)", lambda d: d if isinstance(d, list) else []),
-            ("DataStorage", "💾 M2: Insecure Data Storage",lambda d: d if isinstance(d, list) else []),
-            ("Endpoint",    "🌍 M3: Insecure Communication (Endpoints)",       lambda d: [e for e in d.get("urls",[]) if e.get("categories")] if isinstance(d,dict) else []),
-            ("SSLPinning",  "🛡️ M3: Insecure Communication (SSL Pinning)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
-            ("Secret",      "🔐 M4 & M10: Extraneous Functionality (Hardcoded Secrets)",   lambda d: d if isinstance(d, list) else []),
-            ("JWT",         "🔑 M4: Insecure Authentication (JWT)",          lambda d: d if isinstance(d, list) else []),
-            ("Crypto",      "🔏 M5: Insufficient Cryptography", lambda d: d if isinstance(d, list) else []),
-            ("IntentHijacking", "🔗 M1: Improper Platform Usage (Intent Hijacking)", lambda d: d if isinstance(d, list) else []),
-            ("RootDetection", "🛡️ M8 & M9: Reverse Engineering (Anti-Analysis)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
-            ("HiddenFunction", "👻 M10: Extraneous Functionality", lambda d: d if isinstance(d, list) else []),
-            ("ICC",         "🔗 Cross-Component Taint Flows",     lambda d: d if isinstance(d, list) else []),
+            ("Manifest",    "M1: Improper Platform Usage (Exported Components)", lambda d: d.get("exported_components",[]) if isinstance(d,dict) else []),
+            ("WebView",     "M1 & M7: Client Code Quality (WebViews)", lambda d: d if isinstance(d, list) else []),
+            ("DataStorage", "M2: Insecure Data Storage",lambda d: d if isinstance(d, list) else []),
+            ("Endpoint",    "M3: Insecure Communication (Endpoints)",       lambda d: [e for e in d.get("urls",[]) if e.get("categories")] if isinstance(d,dict) else []),
+            ("SSLPinning",  "M3: Insecure Communication (SSL Pinning)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
+            ("Secret",      "M4 & M10: Extraneous Functionality (Hardcoded Secrets)",   lambda d: d if isinstance(d, list) else []),
+            ("JWT",         "M4: Insecure Authentication (JWT)",          lambda d: d if isinstance(d, list) else []),
+            ("Crypto",      "M5: Insufficient Cryptography", lambda d: d if isinstance(d, list) else []),
+            ("IntentHijacking", "M1: Improper Platform Usage (Intent Hijacking)", lambda d: d if isinstance(d, list) else []),
+            ("RootDetection", "M8 & M9: Reverse Engineering (Anti-Analysis)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
+            ("HiddenFunction", "M10: Extraneous Functionality", lambda d: d if isinstance(d, list) else []),
+            ("ICC",         " Cross-Component Taint Flows",     lambda d: d if isinstance(d, list) else []),
         ]
 
         for key, section_title, extractor in sections:
@@ -898,7 +898,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 <div class="poc-label">Decoded JWT Claims</div>
 <div class="poc">{self._esc(claims_preview)}</div>"""
                     if repro.get("weak_alg"):
-                        claims_html += f'<div style="color:var(--crit);font-size:.75rem;margin:.3rem 0">⚠️ Weak algorithm ({repro.get("algorithm","?")}) — signing secret can be brute-forced offline</div>'
+                        claims_html += f'<div style="color:var(--crit);font-size:.75rem;margin:.3rem 0"> Weak algorithm ({repro.get("algorithm","?")}) — signing secret can be brute-forced offline</div>'
 
                 # Steps HTML
                 steps_html = ""
@@ -999,7 +999,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         if not matched:
             return ""
             
-        html = "<h2>🎯 Statically Verified Frida Hooks</h2>"
+        html = "<h2>Statically Verified Frida Hooks</h2>"
         html += '<p style="font-size:0.9rem; color:var(--muted)">The following Frida scripts in your repository hook classes that were statically verified to exist within this specific APK.</p>'
         
         for script in matched:

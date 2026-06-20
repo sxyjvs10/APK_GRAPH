@@ -16,7 +16,7 @@ from androguard.core.apk import APK
 from androguard.core.dex import DEX
 from androguard.core.analysis.analysis import Analysis
 
-# ── Silence ALL androguard output (it uses loguru, not standard logging) ──
+#  Silence ALL androguard output (it uses loguru, not standard logging) 
 try:
     from loguru import logger as _loguru_logger
     _loguru_logger.disable("androguard")

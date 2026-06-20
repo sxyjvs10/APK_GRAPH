@@ -46,7 +46,7 @@ class NetworkSecurityConfigAnalyzer(BaseIntelligenceModule):
             self.findings = findings
             return self.findings
 
-        # ── Global cleartext ──────────────────────────────────────────
+        #  Global cleartext 
         base_config = root.find("base-config")
         if base_config is not None:
             cleartext = base_config.get("cleartextTrafficPermitted", "true")
@@ -67,7 +67,7 @@ class NetworkSecurityConfigAnalyzer(BaseIntelligenceModule):
                             "risk": SEVERITY_CRITICAL,
                         })
 
-        # ── Per-domain config ─────────────────────────────────────────
+        #  Per-domain config 
         pinned_domains: set[str] = set()
         all_domains: list[str] = []
 

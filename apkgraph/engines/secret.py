@@ -15,34 +15,34 @@ from apkgraph.core.text_heuristics import MAX_STRING_LEN, is_noisy_identifier_li
 
 # Each entry: (name, pattern, confidence, severity, use_noisy_filter, use_named_group)
 _PATTERNS: list[tuple] = [
-    # ── Cloud / Infrastructure ───────────────────────────────────────
+    #  Cloud / Infrastructure 
     ("Google API Key",       r"AIza[0-9A-Za-z\-_]{35}",                             SEVERITY_CRITICAL, False, False),
     ("AWS Access Key ID",    r"AKIA[0-9A-Z]{16}",                                   SEVERITY_CRITICAL, False, False),
     ("AWS Secret Access Key",r"([0-9a-zA-Z/+]{40})",                                SEVERITY_HIGH,     True,  False),
     ("Firebase URL",         r"https://[a-zA-Z0-9-]+\.firebaseio\.com",              SEVERITY_HIGH,     False, False),
     ("Firebase App ID",      r"1:\d{12}:android:[0-9a-f]{16,}",                     SEVERITY_MEDIUM,   False, False),
 
-    # ── Auth Tokens ──────────────────────────────────────────────────
+    #  Auth Tokens 
     ("Slack Token",          r"xox[baprs]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32}", SEVERITY_CRITICAL, False, False),
     ("GitHub Token",         r"ghp_[0-9A-Za-z]{36}",                               SEVERITY_CRITICAL, False, False),
     ("GitHub OAuth Token",   r"gho_[0-9A-Za-z]{36}",                               SEVERITY_CRITICAL, False, False),
 
-    # ── Payment ──────────────────────────────────────────────────────
+    #  Payment 
     ("Stripe Live Key",      r"sk_live_[0-9a-zA-Z]{24}",                            SEVERITY_CRITICAL, False, False),
     ("Stripe Test Key",      r"sk_test_[0-9a-zA-Z]{24}",                            SEVERITY_MEDIUM,   False, False),
 
-    # ── Communication ────────────────────────────────────────────────
+    #  Communication 
     ("Twilio Auth Token",    r"SK[0-9a-fA-F]{32}",                                 SEVERITY_CRITICAL, False, False),
     ("Mailgun API Key",      r"key-[0-9a-zA-Z]{32}",                               SEVERITY_HIGH,     False, False),
     ("SendGrid API Key",     r"SG\.[0-9A-Za-z\-_]{22}\.[0-9A-Za-z\-_]{43}",       SEVERITY_CRITICAL, False, False),
 
-    # ── Cryptographic Material ───────────────────────────────────────
+    #  Cryptographic Material 
     ("PEM Private Key",      r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----",  SEVERITY_CRITICAL, False, False),
 
-    # ── JWT ──────────────────────────────────────────────────────────
+    #  JWT 
     ("JWT",                  r"ey[A-Za-z0-9\-_=]+\.ey[A-Za-z0-9\-_=]+\.?[A-Za-z0-9\-_.+/=]*", SEVERITY_HIGH, False, False),
 
-    # ── Generic patterns (named group — processed separately) ────────
+    #  Generic patterns (named group — processed separately) 
     ("Generic Secret",
      r"(?i)(?P<keyword>secret|token|password|passwd|pwd|apikey|api_key|auth)\s*(?P<sep>[:=])\s*(?P<quote>['\"])(?P<value>[^'\"]{4,})(?P=quote)",
      SEVERITY_MEDIUM, False, True),

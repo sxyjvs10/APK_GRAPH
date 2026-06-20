@@ -51,7 +51,7 @@ class ProxyDetectionAnalyzer(BaseIntelligenceModule):
 
         detected_cats = set()
 
-        # ── Phase 1: Instruction scan ─────────────────────────────────────
+        #  Phase 1: Instruction scan 
         for cls_analysis in analysis.get_classes():
             cls_name = cls_analysis.name
             if self.is_library(cls_name):
@@ -88,7 +88,7 @@ class ProxyDetectionAnalyzer(BaseIntelligenceModule):
                 except Exception:
                     pass
 
-        # ── Phase 2: String pool scan ─────────────────────────────────────
+        #  Phase 2: String pool scan 
         for s in raw_strings:
             if not s:
                 continue

@@ -61,7 +61,7 @@ class KnowledgeGraph:
     def correlate(self, all_findings: dict):
         app_node = self._add_node("Application", "Root")
 
-        # ── Manifest ──────────────────────────────────────────────────
+        #  Manifest 
         manifest = all_findings.get("Manifest", {})
         if not isinstance(manifest, dict):
             manifest = {}
@@ -77,7 +77,7 @@ class KnowledgeGraph:
             n = self._add_node("DangerousPermission", perm)
             self._add_edge(app_node, n, "requests_permission")
 
-        # ── Secrets ───────────────────────────────────────────────────
+        #  Secrets 
         for sec in (all_findings.get("Secret") or []):
             if not isinstance(sec, dict):
                 continue
@@ -87,7 +87,7 @@ class KnowledgeGraph:
             self._add_edge(app_node, n, "contains_secret")
             self._secret_nodes.append(n)
 
-        # ── Endpoints ─────────────────────────────────────────────────
+        #  Endpoints 
         endpoints = all_findings.get("Endpoint", {})
         if isinstance(endpoints, dict):
             for url in endpoints.get("urls", []):
@@ -101,7 +101,7 @@ class KnowledgeGraph:
                 n = self._add_node("WebSocket", "WebSocket detected")
                 self._add_edge(app_node, n, "uses_websocket")
 
-        # ── Deep Links ────────────────────────────────────────────────
+        #  Deep Links 
         deeplinks = all_findings.get("DeepLink", {})
         if isinstance(deeplinks, dict):
             for scheme in deeplinks.get("schemes", []):
@@ -112,7 +112,7 @@ class KnowledgeGraph:
                 n = self._add_node("DeepLinkHost", host)
                 self._add_edge(app_node, n, "handles_host")
 
-        # ── WebView ───────────────────────────────────────────────────
+        #  WebView 
         for wv in (all_findings.get("WebView") or []):
             if not isinstance(wv, dict):
                 continue
@@ -123,7 +123,7 @@ class KnowledgeGraph:
             self._add_edge(parent, n, "uses_webview")
             self._webview_nodes.append(n)
 
-        # ── JWT ───────────────────────────────────────────────────────
+        #  JWT 
         for jwt in (all_findings.get("JWT") or []):
             if not isinstance(jwt, dict):
                 continue
@@ -133,7 +133,7 @@ class KnowledgeGraph:
             self._add_edge(app_node, n, "contains_jwt")
             self._jwt_nodes.append(n)
 
-        # ── Crypto ────────────────────────────────────────────────────
+        #  Crypto 
         for crypto in (all_findings.get("Crypto") or []):
             if not isinstance(crypto, dict):
                 continue
@@ -154,7 +154,7 @@ class KnowledgeGraph:
                                risk=icc.get("risk", ""))
             self._add_edge(parent, n, "has_icc_flow")
 
-        # ── HiddenFunction ────────────────────────────────────────────
+        #  HiddenFunction 
         for hf in (all_findings.get("HiddenFunction") or []):
             if not isinstance(hf, dict):
                 continue
@@ -164,12 +164,12 @@ class KnowledgeGraph:
                                exported=hf.get("exported", False))
             self._add_edge(parent, n, "has_hidden_component")
 
-        # ── SDKFingerprint ────────────────────────────────────────────
+        #  SDKFingerprint 
         for sdk_name in (all_findings.get("SDKFingerprint") or []):
             n = self._add_node("SDK", str(sdk_name))
             self._add_edge(app_node, n, "uses_sdk")
 
-        # ── Environment ───────────────────────────────────────────────
+        #  Environment 
         for env in (all_findings.get("Environment") or []):
             if not isinstance(env, dict):
                 continue
@@ -178,7 +178,7 @@ class KnowledgeGraph:
                                confidence=env.get("confidence", ""))
             self._add_edge(app_node, n, "leaks_environment")
 
-        # ── DataStorage ───────────────────────────────────────────────
+        #  DataStorage 
         for ds in (all_findings.get("DataStorage") or []):
             if not isinstance(ds, dict):
                 continue
@@ -187,7 +187,7 @@ class KnowledgeGraph:
                                risk=ds.get("risk", ""))
             self._add_edge(app_node, n, "stores_data")
 
-        # ── NetworkSecurityConfig ──────────────────────────────────────
+        #  NetworkSecurityConfig 
         nsc = all_findings.get("NetworkSecurityConfig")
         if isinstance(nsc, dict):
             if nsc.get("cleartext_permitted"):
@@ -197,7 +197,7 @@ class KnowledgeGraph:
                 n = self._add_node("NetworkConfig", f"Pinned: {domain}")
                 self._add_edge(app_node, n, "pins_certificate")
 
-        # ── IntentHijacking ───────────────────────────────────────────
+        #  IntentHijacking 
         for ih in (all_findings.get("IntentHijacking") or []):
             if not isinstance(ih, dict):
                 continue
@@ -207,21 +207,21 @@ class KnowledgeGraph:
                                risk=ih.get("risk", ""))
             self._add_edge(parent, n, "uses_implicit_intent")
 
-        # ── SSL Pinning ───────────────────────────────────────────────
+        #  SSL Pinning 
         for sp in (all_findings.get("SSLPinning", {}).get("implementations", []) or []):
             if not isinstance(sp, dict): continue
             parent = self._get_package_node(sp.get("class", ""), app_node)
             n = self._add_node("SSLPinning", sp.get("name", ""), risk=sp.get("severity", ""))
             self._add_edge(parent, n, "has_ssl_pinning")
 
-        # ── Root Detection ────────────────────────────────────────────
+        #  Root Detection 
         for rd in (all_findings.get("RootDetection", {}).get("implementations", []) or []):
             if not isinstance(rd, dict): continue
             parent = self._get_package_node(rd.get("class", ""), app_node)
             n = self._add_node("RootDetection", rd.get("name", ""), risk=rd.get("severity", ""))
             self._add_edge(parent, n, "has_root_detection")
 
-        # ── Cross-module correlation edges ────────────────────────────
+        #  Cross-module correlation edges 
         # Secret → Endpoint (can authenticate)
         for s in self._secret_nodes[:3]:
             for e in self._endpoint_nodes[:3]:

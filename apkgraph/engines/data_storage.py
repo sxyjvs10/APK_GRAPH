@@ -39,7 +39,7 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
         analysis = self.apk_data["analysis"]
         findings: list[dict] = []
 
-        # ── Check for SQLCipher presence ─────────────────────────────
+        #  Check for SQLCipher presence 
         sqlcipher_present = any(
             _SQLCIPHER_PREFIX in cls.name
             for cls in analysis.get_classes()
@@ -71,7 +71,7 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
                     except Exception:
                         continue
 
-                    # ── External Storage ────────────────────────────
+                    #  External Storage 
                     for ext_method in _EXTERNAL_STORAGE_METHODS:
                         if ext_method in output:
                             findings.append({
@@ -83,7 +83,7 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
                             })
                             break
 
-                    # ── SQLite without encryption ───────────────────
+                    #  SQLite without encryption 
                     for sql_method in _SQLITE_METHODS:
                         if sql_method in output and not sqlcipher_present:
                             findings.append({
@@ -95,7 +95,7 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
                             })
                             break
 
-                    # ── SharedPreferences with sensitive keys ────────
+                    #  SharedPreferences with sensitive keys 
                     if "getSharedPreferences" in output or "putString" in output or "putInt" in output:
                         if _SENSITIVE_KEY_RE.search(output):
                             findings.append({
@@ -106,7 +106,7 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
                                 "note": "SharedPreferences may store sensitive auth material. Verify if token/pwd is stored in plaintext.",
                             })
 
-        # ── Check hardcoded file paths with sensitive names ──────────
+        #  Check hardcoded file paths with sensitive names 
         for string in self.apk_data.get("raw_strings", []):
             if string and "/" in string and _SENSITIVE_KEY_RE.search(string):
                 if string.startswith("/data/") or string.startswith("/sdcard/"):

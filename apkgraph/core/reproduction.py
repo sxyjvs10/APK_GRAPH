@@ -16,7 +16,7 @@ import json
 import re
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+#  Helpers 
 
 def _b64pad(s):
     pad = 4 - len(s) % 4
@@ -30,7 +30,7 @@ def _decode_jwt_part(part):
         return None
 
 
-# ── PoC Templates ─────────────────────────────────────────────────────────────
+#  PoC Templates 
 
 def poc_for_secret(finding: dict) -> dict:
     stype = finding.get("type", "")
@@ -199,7 +199,7 @@ def poc_for_jwt(finding: dict) -> dict:
     ]
 
     if weak_alg:
-        steps.append(f"⚠️ Algorithm is {alg} — attempt brute-force of signing secret with hashcat or jwt_tool")
+        steps.append(f" Algorithm is {alg} — attempt brute-force of signing secret with hashcat or jwt_tool")
 
     poc = (
         f"# Step 1: Decode the token (no secret needed)\n"
@@ -551,7 +551,7 @@ def poc_for_data_storage(finding: dict) -> dict:
     }
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+#  Public API 
 
 def enrich_findings(all_findings: dict, package: str = "") -> dict:
     """

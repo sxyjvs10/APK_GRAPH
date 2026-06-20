@@ -8,7 +8,7 @@ public key pinning, and WebViewClient SSL error handling.
 """
 from apkgraph.core.engine import BaseIntelligenceModule, SEVERITY_HIGH, SEVERITY_CRITICAL, SEVERITY_MEDIUM, SEVERITY_LOW
 
-# ── Pinning method signatures ────────────────────────────────────────────────
+#  Pinning method signatures 
 _PINNING_SIGS = {
     # OkHttp3
     "okhttp3/CertificatePinner": {
@@ -101,7 +101,7 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
 
         detected_sigs = set()
 
-        # ── Phase 1: Class-level signature scan ────────────────────────────
+        #  Phase 1: Class-level signature scan 
         for cls_analysis in analysis.get_classes():
             cls_name = cls_analysis.name
 
@@ -120,7 +120,7 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
                         if info["bypass_script"] not in result["bypass_scripts"]:
                             result["bypass_scripts"].append(info["bypass_script"])
 
-        # ── Phase 2: Method-level scan ─────────────────────────────────────
+        #  Phase 2: Method-level scan 
         for cls_analysis in analysis.get_classes():
             cls_name = cls_analysis.name
             if self.is_library(cls_name):
@@ -173,7 +173,7 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
                             "method_hooks":  [f"{cls_name.split('/')[-1]}.onReceivedSslError"],
                         })
 
-        # ── Phase 3: Hardcoded pin detection in strings ────────────────────
+        #  Phase 3: Hardcoded pin detection in strings 
         for s in raw_strings:
             if not s or len(s) < 40:
                 continue
@@ -191,7 +191,7 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
                 unique_pins.append(p)
         result["hardcoded_pins"] = unique_pins[:20]
 
-        # ── Set overall result ─────────────────────────────────────────────
+        #  Set overall result 
         result["pinning"] = len(result["implementations"]) > 0
         if result["implementations"]:
             severities = [i["severity"] for i in result["implementations"]]
