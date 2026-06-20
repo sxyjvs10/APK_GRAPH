@@ -44,7 +44,7 @@ class CryptoAnalyzer(BaseIntelligenceModule):
             if len(val) < 16 or len(val) > 256: continue
             
             # Use robust text heuristics to eliminate false positives
-            if _is_structural_noise(val) or shannon_entropy(val) < 3.8:
+            if " " in val or _is_structural_noise(val) or shannon_entropy(val) < 3.8:
                 continue
                 
             # If this looks like a genuine high-entropy secret, trace it!
@@ -56,7 +56,7 @@ class CryptoAnalyzer(BaseIntelligenceModule):
                 if paths:
                     crypto_findings.append({
                         "type": "Hardcoded Key Material in Crypto Sink",
-                        "value": val[:16] + "...",
+                        "value": val[:120],
                         "usage_method": f"{method.class_name}->{method.name}",
                         "sink_path": paths[0],
                         "risk": "Critical"
