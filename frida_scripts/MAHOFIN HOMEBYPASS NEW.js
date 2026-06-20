@@ -1,8 +1,3 @@
-// ============================================================
-// Target: com.Macom.emicollection
-// Focus: Root Detection + Custom SSL Pinning Bypass
-// ============================================================
-
 setImmediate(function () {
     Java.perform(function () {
 
@@ -12,7 +7,6 @@ setImmediate(function () {
         // ✅ 1. APP-SPECIFIC SECURITY BYPASS
         // ============================================================
         try {
-            var LoginFragment = Java.use("com.Macom.emicollection.content.login.presentation.LoginFragment");
 
             LoginFragment.validateSystemEnvironment.implementation = function () {
                 console.log("[+] Bypassed validateSystemEnvironment");
@@ -37,7 +31,6 @@ setImmediate(function () {
         } catch (e) {
             console.log("[-] App-specific hook failed: " + e);
         }
-
 
         // ============================================================
         // ✅ 2. ROOT DETECTION BYPASS (LIGHT + EFFECTIVE)
@@ -74,12 +67,10 @@ setImmediate(function () {
             console.log("[-] Root bypass failed: " + e);
         }
 
-
         // ============================================================
         // 🔥 3. MAIN FIX: CUSTOM SSL PINNING BYPASS
         // ============================================================
         try {
-            var HostVerifier = Java.use("com.Macom.emicollection.app.common.HostNameVerifierSSL");
 
             HostVerifier.verify.implementation = function (host, session) {
                 console.log("[🔥] Bypassed HostNameVerifierSSL: " + host);
@@ -90,7 +81,6 @@ setImmediate(function () {
         } catch (e) {
             console.log("[-] HostNameVerifierSSL hook failed: " + e);
         }
-
 
         // ============================================================
         // ✅ 4. EXTRA SAFETY: GENERIC SSL BYPASS (FALLBACK)
@@ -123,7 +113,6 @@ setImmediate(function () {
             console.log("[-] Generic SSL hook failed: " + e);
         }
 
-
         // ============================================================
         // ✅ 5. OKHTTP (JUST IN CASE)
         // ============================================================
@@ -140,7 +129,6 @@ setImmediate(function () {
             console.log("[-] OkHttp not used");
         }
 
-
         // ============================================================
         // ✅ 6. TRUSTMANAGERIMPL (ANDROID 7+)
         // ============================================================
@@ -156,7 +144,6 @@ setImmediate(function () {
         } catch (e) {
             console.log("[-] TrustManagerImpl not hooked");
         }
-
 
         console.log("=======================================");
         console.log("[🚀] ALL BYPASSES LOADED SUCCESSFULLY");

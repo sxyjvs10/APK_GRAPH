@@ -1,18 +1,8 @@
-// ================================================
-// PALMA DEVELOPMENT FINANCE - FINAL MERGED BYPASS
-// Merges palmaNEW.js + palma_v3.js
-// Fixes: SSLContext recursion, class re-registration,
-//        missing root hooks, wrong field hooks
-// Run: frida -U -f com.manappuram.palma -l palma_final.js --no-pause
-// ================================================
-
-// ── Pre-register shared AllTrust class ONCE globally ─────────────
 var _allTrustInstance = null;
 function getAllTrust() {
     if (_allTrustInstance) return _allTrustInstance;
     var X509TrustManager = Java.use("javax.net.ssl.X509TrustManager");
     var AllTrust = Java.registerClass({
-        name: "com.palma.bypass.AllTrustFinal",  // unique name, registered ONCE
         implements: [X509TrustManager],
         methods: {
             checkClientTrusted: function (chain, authType) {},
@@ -25,11 +15,7 @@ function getAllTrust() {
     _allTrustInstance = AllTrust.$new();
     return _allTrustInstance;
 }
-
 Java.perform(function () {
-    console.log("[+] Palma Final Bypass Started");
-
-    // ── BLOCK 1: Build fingerprint spoof (from palmaNEW.js) ──────
     try {
         Java.use("android.os.Build").PRODUCT.value      = "gracerltexx";
         Java.use("android.os.Build").MANUFACTURER.value = "samsung";
@@ -42,7 +28,6 @@ Java.perform(function () {
         Java.use("android.os.Build").TAGS.value         = "release-keys";
         console.log("[+] Build fingerprint spoofed");
     } catch (e) { console.log("[-] Build spoof: " + e); }
-
     // ── BLOCK 2: b3.a.m() — Custom integrity check (from v3) ────
     // Replaces failed c3.a.u() — confirmed via JADX
     try {
@@ -54,7 +39,6 @@ Java.perform(function () {
         try { b3a.m.overload().implementation = function () { return false; }; } catch(e) {}
         console.log("[+] b3.a.m() hooked");
     } catch (e) { console.log("[-] b3.a.m(): " + e); }
-
     // ── BLOCK 3: RootBeer (confirmed in JADX screenshot) ─────────
     try {
         var RootBeer = Java.use("com.scottyab.rootbeer.RootBeer");
@@ -66,7 +50,6 @@ Java.perform(function () {
         RootBeer.checkForBinary.implementation = function (b) { return false; };
         console.log("[+] RootBeer fully bypassed");
     } catch (e) { console.log("[-] RootBeer: " + e); }
-
     // ── BLOCK 4: Firebase Crashlytics isRooted (from JADX) ───────
     try {
         var CommonUtils = Java.use(
@@ -78,7 +61,6 @@ Java.perform(function () {
         };
         console.log("[+] Crashlytics isRooted() hooked");
     } catch (e) { console.log("[-] Crashlytics CommonUtils: " + e); }
-
     // ── BLOCK 5: USB Debugging check ─────────────────────────────
     try {
         var SecureSettings = Java.use("android.provider.Settings$Secure");
@@ -95,7 +77,6 @@ Java.perform(function () {
         };
         console.log("[+] USB debugging check bypassed");
     } catch (e) { console.log("[-] Settings.Secure: " + e); }
-
     // ── BLOCK 6: System.exit() safety net ────────────────────────
     try {
         var System = Java.use("java.lang.System");
@@ -104,7 +85,6 @@ Java.perform(function () {
         };
         console.log("[+] System.exit() neutralized");
     } catch (e) { console.log("[-] System.exit: " + e); }
-
     // ── BLOCK 7: finishAffinity safety net ───────────────────────
     try {
         var Activity = Java.use("android.app.Activity");
@@ -113,28 +93,21 @@ Java.perform(function () {
         };
         console.log("[+] finishAffinity() neutralized");
     } catch (e) { console.log("[-] finishAffinity: " + e); }
-
     // ── BLOCK 8: MotionEvent flag bypass ─────────────────────────
     try {
         var MotionEvent = Java.use("android.view.MotionEvent");
         MotionEvent.getFlags.implementation = function () { return 0; };
         console.log("[+] MotionEvent.getFlags() bypassed");
     } catch (e) { console.log("[-] MotionEvent: " + e); }
-
     console.log("[+] All root/integrity hooks applied");
 });
-
-
 // ── SSL UNPINNING (delayed — after app initialises) ───────────────
 setTimeout(function () {
     Java.perform(function () {
         console.log("[+] Applying SSL Unpinning...");
-
-        // ── 1. Palma Custom TLSSocketFactory (from palmaNEW.js) ──
         // FIXED: don't touch trustManagers/delegate fields directly
         // Instead hook SSLContext before TLSSocketFactory uses it
         try {
-            var TLSSocketFactory = Java.use("com.manappuram.palma.utils.TLSSocketFactory");
             TLSSocketFactory.$init.implementation = function () {
                 console.log("[+] TLSSocketFactory.$init hooked");
                 var SSLCtx = Java.use("javax.net.ssl.SSLContext").getInstance("TLSv1.2");
@@ -144,7 +117,6 @@ setTimeout(function () {
             };
             console.log("[+] TLSSocketFactory hooked");
         } catch (e) { console.log("[-] TLSSocketFactory: " + e); }
-
         // ── 2. SSLContext.init — FIXED (no recursion) ────────────
         // Store original ref BEFORE overwriting implementation
         try {
@@ -161,7 +133,6 @@ setTimeout(function () {
             };
             console.log("[+] SSLContext.init hooked");
         } catch (e) { console.log("[-] SSLContext: " + e); }
-
         // ── 3. Conscrypt (most important for HTTPS errors) ────────
         try {
             var TrustManagerImpl = Java.use("com.android.org.conscrypt.TrustManagerImpl");
@@ -190,7 +161,6 @@ setTimeout(function () {
             }
             console.log("[+] Conscrypt hooked");
         } catch (e) { console.log("[-] Conscrypt: " + e); }
-
         // ── 4. OkHttp3 CertificatePinner ─────────────────────────
         try {
             var CertPinner = Java.use("okhttp3.CertificatePinner");
@@ -204,7 +174,6 @@ setTimeout(function () {
                 };
             console.log("[+] OkHttp3 CertificatePinner hooked");
         } catch (e) { console.log("[-] OkHttp3: " + e); }
-
         // ── 5. OkHttpClient Builder — clear pinner at build time ──
         try {
             var Builder = Java.use("okhttp3.OkHttpClient$Builder");
@@ -218,7 +187,6 @@ setTimeout(function () {
             };
             console.log("[+] OkHttpClient builder pinning cleared");
         } catch (e) { console.log("[-] OkHttpClient builder: " + e); }
-
         // ── 6. WebViewClient SSL errors ───────────────────────────
         try {
             var WebViewClient = Java.use("android.webkit.WebViewClient");
@@ -228,7 +196,6 @@ setTimeout(function () {
             };
             console.log("[+] WebViewClient hooked");
         } catch (e) { console.log("[-] WebViewClient: " + e); }
-
         // ── 7. HttpsURLConnection — FIXED (don't suppress, hook TM) 
         // Do NOT block setSSLSocketFactory — breaks connection
         // Instead hook the HostnameVerifier to always return true
@@ -236,7 +203,6 @@ setTimeout(function () {
             var HttpsURLConnection = Java.use("javax.net.ssl.HttpsURLConnection");
             var HostnameVerifier = Java.use("javax.net.ssl.HostnameVerifier");
             var AllVerifier = Java.registerClass({
-                name: "com.palma.bypass.AllVerifier",
                 implements: [HostnameVerifier],
                 methods: {
                     verify: function (hostname, session) {
@@ -251,7 +217,6 @@ setTimeout(function () {
             };
             console.log("[+] HttpsURLConnection HostnameVerifier hooked");
         } catch (e) { console.log("[-] HttpsURLConnection: " + e); }
-
         console.log("[+] All SSL hooks applied");
         console.log("[!] Proxy: set device proxy to 10.0.2.2:8082");
     });

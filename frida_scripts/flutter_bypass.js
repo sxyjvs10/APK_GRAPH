@@ -1,4 +1,3 @@
-// final_v2.js — EGL fix + aggressive lib detection
 "use strict";
 
 function safeStr(p,n){

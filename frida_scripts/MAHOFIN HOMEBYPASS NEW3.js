@@ -1,8 +1,3 @@
-// ============================================================
-// ✅ FINAL FIXED SCRIPT
-// Root + SSL bypass ONLY (no socket tampering)
-// ============================================================
-
 setImmediate(function () {
     Java.perform(function () {
 
@@ -44,7 +39,6 @@ setImmediate(function () {
         // 🔥 2. CUSTOM SSL PINNING BYPASS (MAIN)
         // ============================================================
         try {
-            var HostVerifier = Java.use("com.Macom.emicollection.app.common.HostNameVerifierSSL");
 
             HostVerifier.verify.implementation = function (host, session) {
                 console.log("[🔥] SSL bypass: " + host);

@@ -1,154 +1,9 @@
-/* Global variables */
-var appId = null;
-var appId_iOS = null;
-
-var BURP_PROXY_IP = null;
-var BURP_PROXY_PORT = null;
-
-var flutter_base = null;
-var flutter_size = null;
-
-var PT_LOAD_rodata_p_memsz = null;
-var PT_LOAD_text_p_vaddr = null;
-var PT_LOAD_text_p_memsz = null;
-var PT_GNU_RELRO_p_vaddr = null;
-var PT_GNU_RELRO_p_memsz = null;
-
-var TEXT_segment_text_section_offset = null;
-var TEXT_segment_text_section_size = null;
-var TEXT_segment_cstring_section_offset = null;
-var TEXT_segment_cstring_section_size = null;
-var DATA_segment_const_section_offset = null;
-var DATA_segment_const_section_size = null;
-
-var ssl_client_string_pattern_found_addr = null;
-var verify_cert_chain_func_addr = null;
-var handshake_string_pattern_found_addr = null;
-var verify_peer_cert_func_addr = null;
-
-var Socket_CreateConnect_string_pattern_found_addr = null;
-var Socket_CreateConnect_func_addr = null;
-
-var GetSockAddr_func_addr = null;
-var sockaddr = null;
-/* Global variables */
-
-/* Util functions */
-// Find application package name
-function findAppId() {
-    if (Process.platform === "linux") {
-        var pm = Java.use('android.app.ActivityThread').currentApplication();
-        return pm.getApplicationContext().getPackageName();
-    } else {
-        return ObjC.classes.NSBundle.mainBundle().bundleIdentifier().toString();
-    }
-}
-
-// Convert hex to byte string
-function convertHexToByteString(hexString) {
-    // Remove the '0x' prefix
-    let cleanHexString = hexString.startsWith('0x') ? hexString.slice(2) : hexString;
-
-    // Pad with a leading zero if the length is odd
-    if (cleanHexString.length % 2 !== 0) {
-        cleanHexString = '0' + cleanHexString;
-    }
-
-    // Split the string into pairs of two characters
-    let byteArray = cleanHexString.match(/.{1,2}/g);
-
-    // Reverse the order of the byte pairs
-    byteArray.reverse();
-
-    // Join the byte pairs with spaces
-    let byteString = byteArray.join(' ');
-
-    return byteString;
-}
-
-// Convert ip string (e.g, "192.168.0.12") to byte array
-function convertIpToByteArray(ipString) {
-    // Split the IP address into its components
-    let octets = ipString.split('.');
-
-    // Convert each octet to a hexadecimal number and then to a byte
-    let byteArray = octets.map(octet => parseInt(octet, 10));
-
-    return byteArray;
-}
-
-// Convert ArrayBuffer to hex string
-function convertArrayBufferToHex(buffer) {
-    let hexArray = [];
-    let uint8Array = new Uint8Array(buffer);
-    for (let byte of uint8Array) {
-        hexArray.push(byte.toString(16).padStart(2, '0'));
-    }
-    return hexArray.join(' ');
-}
-
-// Byte flip
-function byteFlip(number) {
-    // Extract the high and low bytes
-    let highByte = (number >> 8) & 0xFF;
-    let lowByte = number & 0xFF;
-
-    // Swap the high and low bytes
-    let flippedNumber = (lowByte << 8) | highByte;
-
-    return flippedNumber;
-}
-
-// Memory scan
-function scanMemory(scan_start_addr, scan_size, pattern, for_what) {
-    Memory.scan(scan_start_addr, scan_size, pattern, {
-        onMatch: function(address, size){
-            if (for_what == "ssl_client") {
-                ssl_client_string_pattern_found_addr = address;
-                console.log(`[*] ssl_client string pattern found at: ${address}`);
-            } 
-            else if (for_what == "ssl_client_adrp_add") {
-                var adrp, add;
-                var disasm = Instruction.parse(address);
-                if (disasm.mnemonic == "adrp") {
-                    adrp = disasm.operands.find(op => op.type === 'imm')?.value;
-                    
-                    disasm = Instruction.parse(disasm.next);
-                    if (disasm.mnemonic != "add") {
-                        disasm = Instruction.parse(disasm.next);
-                    }
-                    add = disasm.operands.find(op => op.type === 'imm')?.value;
-
-                    if (adrp != undefined && add != undefined && ptr(adrp).add(add).toString() == ssl_client_string_pattern_found_addr.toString()) {
-                        console.log(`[*] Found adrp add address: ${address}`);
-                        // As we trace back, disassemble to find the address of the verify_cert_chain function (https://blog.weghos.com/flutter/engine/third_party/boringssl/src/ssl/ssl_x509.cc.html#_ZN4bsslL41ssl_crypto_x509_session_verify_cert_chainEP14ssl_session_stPNS_13SSL_HANDSHAKEEPh)
-                        for (let off = 0;; off += 4) {
-                            disasm = Instruction.parse(address.sub(off));
-                            if (disasm.mnemonic == "sub") {
-                                disasm = Instruction.parse(disasm.next);
-                                if (disasm.mnemonic == "stp" || disasm.mnemonic == "str") {
-                                    verify_cert_chain_func_addr = address.sub(off);
-                                    console.log(`[*] Found verify_cert_chain function address: ${verify_cert_chain_func_addr}`);
-                                    break;
-                                }
-                            } else {
-                                continue;
-                            }
-                        }
-                    }
-                }
-            }
-            else if (for_what == "ssl_client_lea_rdi_rip") {
-                /* opcode
-                    lea rdi, [rip - 0xabcd]
-                */
                 var rdi, rip, disp;
                 var disasm = Instruction.parse(address);
                 if (disasm.mnemonic == "lea") {
                     rip = disasm.next;
                     disp = disasm.operands.find(op => op.type === 'mem')?.value.disp;
                     rdi = rip.add(disp);
-
                     if (rip != undefined && rdi != undefined && ptr(rdi).toString() == ssl_client_string_pattern_found_addr.toString()) {
                         console.log(`[*] Found lea rdi rip address: ${address}`);
                         // As we trace back, disassemble to find the address of the verify_cert_chain function (https://blog.weghos.com/flutter/engine/third_party/boringssl/src/ssl/ssl_x509.cc.html#_ZN4bsslL41ssl_crypto_x509_session_verify_cert_chainEP14ssl_session_stPNS_13SSL_HANDSHAKEEPh)
@@ -193,13 +48,11 @@ function scanMemory(scan_start_addr, scan_size, pattern, for_what) {
                 var disasm = Instruction.parse(address);
                 if (disasm.mnemonic == "adrp") {
                     adrp = disasm.operands.find(op => op.type === 'imm')?.value;
-                    
                     disasm = Instruction.parse(disasm.next);
                     if (disasm.mnemonic != "add") {
                         disasm = Instruction.parse(disasm.next);
                     }
                     add = disasm.operands.find(op => op.type === 'imm')?.value;
-
                     if (adrp != undefined && add != undefined && ptr(adrp).add(add).toString() == handshake_string_pattern_found_addr.toString()) {
                         console.log(`[*] Found adrp add address: ${address}`);
                         // As we trace back, disassemble to find the address of the ssl_verify_peer_cert function (https://blog.weghos.com/flutter/engine/third_party/boringssl/src/ssl/handshake.cc.html#_ZN4bssl20ssl_verify_peer_certEPNS_13SSL_HANDSHAKEE)
@@ -241,7 +94,6 @@ function scanMemory(scan_start_addr, scan_size, pattern, for_what) {
                     MOV             X0, X19
                     BL              sub_89E20C
                 */
-
                 /* x64
                     push            rbp
                     push            r15
@@ -260,7 +112,6 @@ function scanMemory(scan_start_addr, scan_size, pattern, for_what) {
                     mov             esi, 2
                     call            sub_AB2790
                 */
-               
                 if (Process.arch == 'arm64') {
                     var bl_count = 0;
                     for (let off = 0;; off += 4) {
@@ -342,7 +193,6 @@ function scanMemory(scan_start_addr, scan_size, pattern, for_what) {
     })
 }
 /* Util functions */
-
 /* Some variables and functions for elf parsing */
 var O_RDONLY = 0;
 var O_WRONLY = 1;
@@ -353,7 +203,6 @@ var O_CREAT = 64;
 var SEEK_SET = 0;
 var SEEK_CUR = 1;
 var SEEK_END = 2;
-
 var p_types = {
     "PT_NULL":		0,		/* Program header table entry unused */
     "PT_LOAD":		1,		/* Loadable program segment */
@@ -377,7 +226,6 @@ var p_types = {
     "PT_LOPROC":	0x70000000,	/* Start of processor-specific */
     "PT_HIPROC":	0x7fffffff,	/* End of processor-specific */
 }
-
 function getExportFunction(name, ret, args) {
     var funcPtr;
     funcPtr = Module.findExportByName(null, name);
@@ -393,13 +241,11 @@ function getExportFunction(name, ret, args) {
         return func;
     }
 }
-
 var open = getExportFunction("open", "int", ["pointer", "int", "int"])
 var close = getExportFunction("close", "int", ["int"]);
 var lseek = getExportFunction("lseek", "int", ["int", "int", "int"]);
 var read = getExportFunction("read", "int", ["int", "pointer", "int"]);
 /* Some variables and functions for elf parsing */
-
 /* Parsing elf function */
 function parseElf(base) {
     base = ptr(base);
@@ -408,17 +254,14 @@ function parseElf(base) {
     if (module !== null) {
         fd = open(Memory.allocUtf8String(module.path), O_RDONLY, 0);
     }
-    
     // Read elf header
     var magic = "464c457f"
     var elf_magic = base.readU32()
     if (parseInt(elf_magic).toString(16) != magic) {
         console.log("[!] Wrong magic...ignore")
     }
-
     var arch = Process.arch
     var is32bit = arch == "arm" ? 1 : 0 // 1:32 0:64
-
     var size_of_Elf32_Ehdr = 0x34;
     var off_of_Elf32_Ehdr_shoff = 32;
     var off_of_Elf32_Ehdr_phentsize = 42;
@@ -426,7 +269,6 @@ function parseElf(base) {
     var off_of_Elf32_Ehdr_shentsize = 46;
     var off_of_Elf32_Ehdr_shnum = 48;
     var off_of_Elf32_Ehdr_shstrndx = 50;
-
     var size_of_Elf64_Ehdr = 0x40;
     var off_of_Elf64_Ehdr_shoff = 40;
     var off_of_Elf64_Ehdr_phentsize = 54;
@@ -434,7 +276,6 @@ function parseElf(base) {
     var off_of_Elf64_Ehdr_shentsize = 58;
     var off_of_Elf64_Ehdr_shnum = 60;
     var off_of_Elf64_Ehdr_shstrndx = 62;
-
     // Parse Ehdr(Elf header)
     var ehdrs_from_file = null;
     var phoff = is32bit ? size_of_Elf32_Ehdr : size_of_Elf64_Ehdr   // Program header table file offset
@@ -475,7 +316,6 @@ function parseElf(base) {
             phnum = 10;
         }
     }
-
     var shentsize = is32bit ? base.add(off_of_Elf32_Ehdr_shentsize).readU16() : base.add(off_of_Elf64_Ehdr_shentsize).readU16();    // Size of the section header
     if (is32bit && shentsize != 40) {  // 0x28
         console.log("[!] Wrong e_shentsize. Let's assume it's 40");
@@ -496,13 +336,11 @@ function parseElf(base) {
         console.log(`[*] shnum from the file: ${shnum}, shstrndx from the file: ${shstrndx}`)
     }
     // console.log(`phoff: ${phoff}, shoff: ${shoff}, phentsize: ${phentsize}, phnum: ${phnum}, shentsize: ${shentsize}, shnum: ${shnum}, shstrndx: ${shstrndx}`)
-
     // Parse Phdr(Program header)
     var phdrs = base.add(phoff)
     for (var i = 0; i < phnum; i++) {
         var phdr = phdrs.add(i * phentsize);
         var p_type = phdr.readU32();
-
         // if p_type is 0 check if it's really 0 from the file
         var phdrs_from_file = null;
         if (p_type === 0 && fd != null && fd !== -1) {
@@ -512,7 +350,6 @@ function parseElf(base) {
             p_type = phdrs_from_file.add(i * phentsize).readU32();
         }
         var p_type_sym = null;
-
         // check if p_type matches the defined p_type
         var p_type_exists = false;
         for (let key in p_types) {
@@ -523,7 +360,6 @@ function parseElf(base) {
             }
         }
         if (!p_type_exists) break;
-
         var p_offset = is32bit ? phdr.add(0x4).readU32() : phdr.add(0x8).readU64();
         var p_vaddr = is32bit ? phdr.add(0x8).readU32() : phdr.add(0x10).readU64();
         var p_paddr = is32bit ? phdr.add(0xc).readU32() : phdr.add(0x18).readU64();
@@ -532,7 +368,6 @@ function parseElf(base) {
         var p_flags = is32bit ? phdr.add(0x18).readU32() : phdr.add(0x4).readU32();
         var p_align = is32bit ? phdr.add(0x1c).readU32() : phdr.add(0x30).readU64();
         // console.log(`p_type: ${p_type}, p_offset: ${p_offset}, p_vaddr: ${p_vaddr}, p_paddr: ${p_paddr}, p_filesz: ${p_filesz}, p_memsz: ${p_memsz}, p_flags: ${p_flags}, p_align: {p_align}`);
-
         // if p_flags is 0, check it from the file
         if (p_flags === 0 && fd != null && fd !== -1) {
             phdrs_from_file = Memory.alloc(phnum * phentsize);
@@ -547,13 +382,11 @@ function parseElf(base) {
             p_flags = is32bit ? phdr_from_file.add(0x18).readU32() : phdr_from_file.add(0x4).readU32();
             p_align = is32bit ? phdr_from_file.add(0x1c).readU32() : phdr_from_file.add(0x30).readU64();
         }
-
         // .rodata section
         if (p_type_sym === 'PT_LOAD' && p_vaddr == 0) {
             PT_LOAD_rodata_p_memsz = p_memsz;
             continue;
         }
-
         // .text section
         if (p_type_sym === 'PT_LOAD' && p_vaddr != 0) {
             if (PT_LOAD_text_p_vaddr == null && PT_LOAD_text_p_memsz == null) {
@@ -562,7 +395,6 @@ function parseElf(base) {
             }
             continue;
         }
-
         if (p_type_sym === 'PT_GNU_RELRO') {
             PT_GNU_RELRO_p_vaddr = p_vaddr;
             PT_GNU_RELRO_p_memsz = p_memsz;
@@ -571,7 +403,6 @@ function parseElf(base) {
     }
 }
 /* Parsing elf function */
-
 /* Parsing MachO function */
 function parseMachO(base) {
     base = ptr(base)
@@ -604,7 +435,6 @@ function parseMachO(base) {
             var fileoffset = base.add(cmdoff + file_offset).readU32();
             var nsects = base.add(cmdoff + number_of_sections_offset).readU8();
             var secbase = base.add(cmdoff + section64_header_base_offset);
-
             if (base.add(cmdoff + command_size_offset).readU32() >= section64_header_base_offset + nsects * section64_header_size) {
                 var TEXT_segment_text_section_index = 0;
                 var TEXT_segment_cstring_section_index = 0;
@@ -612,7 +442,6 @@ function parseMachO(base) {
                 for (var i = 0; i < nsects; i++) {
                     var secname = secbase.add(i * section64_header_size).readUtf8String()
                     var section_start_offset = secbase.add(i * section64_header_size + 0x30).readU32();                        
-
                     if (segname === '__TEXT' && secname === '__text') {
                         TEXT_segment_text_section_index = i;
                         TEXT_segment_text_section_offset = section_start_offset;
@@ -636,7 +465,6 @@ function parseMachO(base) {
     }
 }
 /* Parsing MachO function */
-
 /* Hook flutter engine function to capture the network traffic */
 function hook(target) {
     if (target == "GetSockAddr") {
@@ -659,7 +487,6 @@ function hook(target) {
                 else if (Process.platform === 'darwin' && sockaddr != null && ptr(sockaddr).add(0x1).readU8() == 2) {
                     overwrite = true;
                 }
-
                 if (overwrite) {
                     console.log(`[*] Overwrite sockaddr as our burp proxy ip and port --> ${BURP_PROXY_IP}:${BURP_PROXY_PORT}`);
                     ptr(sockaddr).add(0x2).writeU16(byteFlip(BURP_PROXY_PORT));
@@ -684,7 +511,6 @@ function hook(target) {
     }
     else if (target == "verifyPeerCert") {
         // Hook the verify_peer_cert function and replace it, so we can capture ssl traffic
-        // https://github.com/NVISOsecurity/disable-flutter-tls-verification/blob/ecc6e9ed9e1182645b32da68d7be6aefb2b7e970/disable-flutter-tls.js#L151
         Interceptor.replace(verify_peer_cert_func_addr, new NativeCallback((pathPtr, flags) => {
             console.log(`[*] verify peer cert bypass`);
             return 0;
@@ -692,7 +518,6 @@ function hook(target) {
     }
 }
 /* Hook flutter engine function to capture the network traffic */
-
 /* main */
 var target_flutter_library = ObjC.available ? "Flutter.framework/Flutter" : (Java.available ? "libflutter.so" : null);
 if (target_flutter_library != null) { 
@@ -717,7 +542,6 @@ if (target_flutter_library != null) {
             }
         }, 0);
     }
-    
     function init(base) {
         flutter_base = ptr(base);
         console.log(`[*] ${target_flutter_library} base: ${flutter_base}`);
@@ -725,7 +549,6 @@ if (target_flutter_library != null) {
             appId = findAppId();
             console.log(`[*] package name: ${appId}`);    
         }
-
         var ssl_client_string = '73 73 6C 5F 63 6C 69 65 6E 74 00';
         var Socket_CreateConnect_string = '53 6f 63 6b 65 74 5f 43 72 65 61 74 65 43 6f 6e 6e 65 63 74 00';
         // "third_party/boringssl/src/ssl/handshake.cc" string. First, Scan this string and then need to find the start address of "../../"
@@ -745,7 +568,6 @@ if (target_flutter_library != null) {
             scanMemory(flutter_base.add(TEXT_segment_cstring_section_offset), TEXT_segment_cstring_section_size, handshake_string, "handshake");
             scanMemory(flutter_base.add(TEXT_segment_cstring_section_offset), TEXT_segment_cstring_section_size, Socket_CreateConnect_string, "Socket_CreateConnect");
         }
-    
         var int_getSockAddr = setInterval(() => {
             if (GetSockAddr_func_addr != null) {
                 console.log("[*] Hook GetSockAddr function");
@@ -753,7 +575,6 @@ if (target_flutter_library != null) {
                 clearInterval(int_getSockAddr);
             }
         }, 0);
-        
         if (Process.platform === 'linux') {
             var int_verifyCertBypass = setInterval(() => {
                 if (verify_cert_chain_func_addr != null) {
@@ -774,11 +595,8 @@ if (target_flutter_library != null) {
             }, 0);
         }
     }
-
     BURP_PROXY_IP = "10.211.2.162";
     BURP_PROXY_PORT = 8083;
-
     awaitForCondition(init);
 }
 /* main */
-

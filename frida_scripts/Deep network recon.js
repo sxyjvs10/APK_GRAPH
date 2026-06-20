@@ -4,12 +4,10 @@
 Java.perform(function () {
 
     setTimeout(function () {
-        console.log('[SCAN] Scanning all Macom classes for check() and pin-related methods...');
         var found = [];
 
         Java.enumerateLoadedClasses({
             onMatch: function (cls) {
-                if (cls.indexOf('com.Macom.emicollection') === -1) return;
                 try {
                     var C = Java.use(cls);
                     var methods = C.class.getDeclaredMethods();

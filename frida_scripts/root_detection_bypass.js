@@ -1,22 +1,8 @@
-/*
- * @name         root_detection_bypass
- * @bypass       Root Detection
- * @targets      RootBeer, SafetyNet, Magisk, su binary checks, build tag checks, package checks
- * @author       APKGraph Built-in
- * @frida_version >= 15.0
- * @description  Comprehensive root detection bypass. Hooks RootBeer, file system checks
- *               for su/busybox, build property checks, package manager queries for Magisk/SuperSU,
- *               and SafetyNet/Play Integrity API.
- * @usage        frida -U -f com.target.app -l root_detection_bypass.js --no-pause
- */
-
 setTimeout(function() {
   Java.perform(function() {
     console.log("[APKGraph] Root Detection Bypass");
     console.log("[APKGraph] Hooking all known root detection methods...\n");
-
     var bypassed = [];
-
     // ── 1. RootBeer (Scott Alexander-Bown) ────────────────────────────────
     var rootBeerClasses = [
       "com.scottyab.rootbeer.RootBeer",
@@ -41,7 +27,6 @@ setTimeout(function() {
         bypassed.push("RootBeer (" + cls + ")");
       } catch(e) {}
     });
-
     // ── 2. File existence checks (su, busybox, magisk) ────────────────────
     try {
       var File = Java.use("java.io.File");
@@ -72,7 +57,6 @@ setTimeout(function() {
       };
       bypassed.push("java.io.File (su/busybox/magisk paths)");
     } catch(e) {}
-
     // ── 3. Build property checks ───────────────────────────────────────────
     try {
       var Build = Java.use("android.os.Build");
@@ -85,7 +69,6 @@ setTimeout(function() {
       });
       bypassed.push("android.os.Build.TAGS");
     } catch(e) {}
-
     // ── 4. System properties (ro.debuggable, ro.build.tags) ───────────────
     try {
       var SystemProperties = Java.use("android.os.SystemProperties");
@@ -109,7 +92,6 @@ setTimeout(function() {
       };
       bypassed.push("SystemProperties (ro.debuggable, ro.build.tags)");
     } catch(e) {}
-
     // ── 5. PackageManager — block Magisk/SuperSU package queries ──────────
     try {
       var rootPackages = [
@@ -136,7 +118,6 @@ setTimeout(function() {
       };
       bypassed.push("PackageManager (Magisk/SuperSU packages)");
     } catch(e) {}
-
     // ── 6. Runtime.exec — block su/which/id commands ──────────────────────
     try {
       var Runtime = Java.use("java.lang.Runtime");
@@ -160,7 +141,6 @@ setTimeout(function() {
       };
       bypassed.push("Runtime.exec (su/busybox commands)");
     } catch(e) {}
-
     // ── 7. SafetyNet / Play Integrity API ────────────────────────────────
     try {
       var SafetyNetClient = Java.use("com.google.android.gms.safetynet.SafetyNetClient");
@@ -170,7 +150,6 @@ setTimeout(function() {
       };
       bypassed.push("SafetyNet attest (intercepted)");
     } catch(e) {}
-
     // ── 8. Frida/Xposed detection bypass (detect-self bypass) ─────────────
     try {
       var ProcessBuilder = Java.use("java.lang.ProcessBuilder");
@@ -184,7 +163,6 @@ setTimeout(function() {
       };
       bypassed.push("ProcessBuilder (Frida/Xposed self-detection)");
     } catch(e) {}
-
     // ── 9. Hook common custom root check method names ────────────────────
     var rootCheckMethodNames = ["isRooted", "isDeviceRooted", "isRootAvailable", "checkRoot",
                                  "isRootPresent", "hasRootAccess", "checkForRoot", "deviceIsRooted"];
@@ -210,7 +188,6 @@ setTimeout(function() {
       },
       onComplete: function() {}
     });
-
     console.log("\n[APKGraph] Root Detection Bypass complete. Hooks installed:");
     bypassed.forEach(function(b) { console.log("  ✓ " + b); });
     console.log("  ✓ Custom isRooted/checkRoot methods (dynamic enumeration)\n");

@@ -1,12 +1,5 @@
-// ============================================================
-// ✅ MAHOFIN HOMEBYPASS v5
-// Fixes: lazy class loading, early spawn timing, m31 RootBeer
-// ============================================================
-
 setImmediate(function () {
     Java.perform(function () {
-
-        console.log("[🚀] MAHOFIN v5 loading...");
 
         // ============================================================
         // ✅ 1. ROOT FILE & PACKAGE BYPASS
@@ -42,7 +35,6 @@ setImmediate(function () {
         //    Since com.scottyab.rootbeer.RootBeer is shaded as m31
         // ============================================================
         try {
-            var m31 = Java.use("com.Macom.emicollection.m31");
 
             // Enumerate and hook all boolean-returning methods
             var m31Class = m31.class;
@@ -162,7 +154,6 @@ setImmediate(function () {
         Java.enumerateClassLoaders({
             onMatch: function (loader) {
                 try {
-                    var HostVerifier = Java.use("com.Macom.emicollection.app.common.HostNameVerifierSSL");
                     HostVerifier.verify.implementation = function (host, session) {
                         console.log("[🔥] SSL pinning bypassed: " + host);
                         return true;
@@ -208,7 +199,6 @@ setImmediate(function () {
         // ============================================================
         try {
             var LoginFragment = Java.use(
-                "com.Macom.emicollection.content.login.presentation.LoginFragment"
             );
 
             LoginFragment.validateSystemEnvironment.implementation = function () {
@@ -230,7 +220,6 @@ setImmediate(function () {
         } catch (e) { console.log("[-] LoginFragment hooks: " + e); }
 
         console.log("===========================================");
-        console.log("[🔥] MAHOFIN v5 — ALL BYPASSES ACTIVE");
         console.log("===========================================");
     });
 });

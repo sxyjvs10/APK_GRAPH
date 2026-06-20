@@ -1,22 +1,8 @@
-/*
- * @name         proxy_detection_bypass
- * @bypass       Proxy Detection
- * @targets      NetworkInfo proxy checks, System.getProperty, ProxySelector, VPN detection, ARP checks
- * @author       APKGraph Built-in
- * @frida_version >= 15.0
- * @description  Bypasses all common proxy detection techniques including
- *               System.getProperty(http.proxyHost), NetworkInfo checks, ProxySelector,
- *               VPN interface detection, and network connectivity sniffing.
- * @usage        frida -U -f com.target.app -l proxy_detection_bypass.js --no-pause
- */
-
 setTimeout(function() {
   Java.perform(function() {
     console.log("[APKGraph] Proxy Detection Bypass");
     console.log("[APKGraph] Hooking all proxy/VPN detection methods...\n");
-
     var bypassed = [];
-
     // ── 1. System.getProperty proxy checks ────────────────────────────────
     try {
       var System = Java.use("java.lang.System");
@@ -38,7 +24,6 @@ setTimeout(function() {
       };
       bypassed.push("System.getProperty (http.proxyHost/Port)");
     } catch(e) {}
-
     // ── 2. ProxySelector ────────────────────────────────────────────────
     try {
       var ProxySelector = Java.use("java.net.ProxySelector");
@@ -52,7 +37,6 @@ setTimeout(function() {
       };
       bypassed.push("ProxySelector.select()");
     } catch(e) {}
-
     // ── 3. ConnectivityManager — hide proxy / VPN interfaces ──────────────
     try {
       var ConnectivityManager = Java.use("android.net.ConnectivityManager");
@@ -62,7 +46,6 @@ setTimeout(function() {
       };
       bypassed.push("ConnectivityManager.getDefaultProxy()");
     } catch(e) {}
-
     // ── 4. NetworkInfo — prevent VPN type detection ────────────────────────
     try {
       var NetworkInfo = Java.use("android.net.NetworkInfo");
@@ -78,7 +61,6 @@ setTimeout(function() {
       };
       bypassed.push("ConnectivityManager.getNetworkInfo (TYPE_VPN)");
     } catch(e) {}
-
     // ── 5. Network.getAllNetworks — filter VPN interfaces ─────────────────
     try {
       var Network          = Java.use("android.net.Network");
@@ -100,7 +82,6 @@ setTimeout(function() {
       };
       bypassed.push("NetworkCapabilities VPN filtering");
     } catch(e) {}
-
     // ── 6. Block InetAddress / hostname checks pointing to proxy ──────────
     try {
       var InetSocketAddress = Java.use("java.net.InetSocketAddress");
@@ -114,7 +95,6 @@ setTimeout(function() {
       };
       bypassed.push("InetSocketAddress.getHostName (logging)");
     } catch(e) {}
-
     // ── 7. OkHttp3 proxy detection workaround ────────────────────────────
     try {
       var OkHttpClient_Builder = Java.use("okhttp3.OkHttpClient$Builder");
@@ -124,7 +104,6 @@ setTimeout(function() {
       };
       bypassed.push("OkHttp3 Client proxy setting (logged)");
     } catch(e) {}
-
     // ── 8. Spoof android.net.Proxy ────────────────────────────────────────
     try {
       var AndroidProxy = Java.use("android.net.Proxy");
@@ -138,7 +117,6 @@ setTimeout(function() {
       };
       bypassed.push("android.net.Proxy.getHost/Port()");
     } catch(e) {}
-
     console.log("\n[APKGraph] Proxy Detection Bypass complete. Hooks installed:");
     bypassed.forEach(function(b) { console.log("  ✓ " + b); });
     console.log("\n[APKGraph] Tip: Combine with ssl_pinning_universal.js for full traffic interception\n");

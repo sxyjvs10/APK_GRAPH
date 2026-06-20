@@ -1,9 +1,4 @@
-// ================================================
-// PALMA DEVELOPMENT FINANCE - FULL AGGRESSIVE BYPASS
-// ================================================
-
 Java.perform(function () {
-    console.log("[+] Palma Full Bypass Script Started");
 
     // Emulator Bypass
     Java.use("android.os.Build").PRODUCT.value = "gracerltexx";
@@ -22,19 +17,15 @@ setTimeout(function () {
 
         console.log("[+] Applying Aggressive SSL Unpinning...");
 
-        // 1. Palma Custom TLSSocketFactory
         try {
-            const TLSSocketFactory = Java.use("com.manappuram.palma.utils.TLSSocketFactory");
             TLSSocketFactory.$init.implementation = function () {
                 console.log("[+] Hooked TLSSocketFactory - Blind Trust Applied");
                 const X509TrustManager = Java.use("javax.net.ssl.X509TrustManager");
                 const AllTrust = Java.registerClass({
-                    name: "palma.AllTrust",
                     implements: [X509TrustManager],
                     methods: {
                         checkClientTrusted: function() {},
                         checkServerTrusted: function(chain, authType) {
-                            console.log("[+] Palma checkServerTrusted bypassed");
                         },
                         getAcceptedIssuers: function() { return []; }
                     }

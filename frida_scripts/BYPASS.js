@@ -1,11 +1,3 @@
-
-/*
- * Targeted Bypass for com.q.security_sdk
- *
- * This script specifically targets the integrity check causing the "Unsupported Device"
- * message and application exit.
- */
-
 setTimeout(function() {
     Java.perform(function() {
 
@@ -98,7 +90,6 @@ setTimeout(function() {
         } catch (e) {
             console.log("[-] Conscrypt bypass error: " + e.message);
         }
-
 
         /*
          * ========== Optional: Crude System.exit() bypass ==========

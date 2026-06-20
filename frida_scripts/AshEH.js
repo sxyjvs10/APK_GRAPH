@@ -1,8 +1,6 @@
 setImmediate(function () {
     Java.perform(function () {
-
         console.log("[+] Script started");
-
         /* =========================
            1. Anti-Frida / Anti-Debug
         ========================= */
@@ -13,35 +11,30 @@ setImmediate(function () {
             };
             console.log("[+] Debug check bypassed");
         } catch (e) {}
-
         try {
             var System = Java.use("java.lang.System");
             System.exit.implementation = function (code) {
                 console.log("[+] Prevented System.exit");
             };
         } catch (e) {}
-
         try {
             var Runtime = Java.use("java.lang.Runtime");
             Runtime.exit.implementation = function (code) {
                 console.log("[+] Prevented Runtime.exit");
             };
         } catch (e) {}
-
         try {
             var Process = Java.use("android.os.Process");
             Process.killProcess.implementation = function (pid) {
                 console.log("[+] Prevented killProcess");
             };
         } catch (e) {}
-
         /* =========================
            2. TrustManager Bypass
         ========================= */
         try {
             var X509TrustManager = Java.use('javax.net.ssl.X509TrustManager');
             var SSLContext = Java.use('javax.net.ssl.SSLContext');
-
             var TrustManager = Java.registerClass({
                 name: 'dev.asd.TrustManager',
                 implements: [X509TrustManager],
@@ -51,13 +44,11 @@ setImmediate(function () {
                     getAcceptedIssuers: function () { return []; }
                 }
             });
-
             var SSLContext_init = SSLContext.init.overload(
                 '[Ljavax.net.ssl.KeyManager;',
                 '[Ljavax.net.ssl.TrustManager;',
                 'java.security.SecureRandom'
             );
-
             SSLContext_init.implementation = function (km, tm, sr) {
                 console.log('[+] TrustManager bypass');
                 SSLContext_init.call(this, km, [TrustManager.$new()], sr);
@@ -65,7 +56,6 @@ setImmediate(function () {
         } catch (e) {
             console.log("[-] TrustManager failed");
         }
-
         /* =========================
            3. TrustManagerImpl (Android 7+)
         ========================= */
@@ -76,14 +66,12 @@ setImmediate(function () {
                 return arguments[0];
             };
         } catch (e) {}
-
         /* =========================
            4. HostnameVerifier
         ========================= */
         try {
             var HostnameVerifier = Java.use('javax.net.ssl.HostnameVerifier');
             var HttpsURLConnection = Java.use('javax.net.ssl.HttpsURLConnection');
-
             var TrustHostnameVerifier = Java.registerClass({
                 name: 'dev.asd.TrustHostnameVerifier',
                 implements: [HostnameVerifier],
@@ -93,11 +81,9 @@ setImmediate(function () {
                     }
                 }
             });
-
             HttpsURLConnection.setDefaultHostnameVerifier(TrustHostnameVerifier.$new());
             console.log("[+] HostnameVerifier bypass");
         } catch (e) {}
-
         /* =========================
            5. OkHttp (if present)
         ========================= */
@@ -108,7 +94,6 @@ setImmediate(function () {
                 return;
             };
         } catch (e) {}
-
         /* =========================
            6. WebView SSL
         ========================= */
@@ -119,7 +104,6 @@ setImmediate(function () {
                 handler.proceed();
             };
         } catch (e) {}
-
         /* =========================
            7. HttpsURLConnection fallback
         ========================= */
@@ -129,7 +113,6 @@ setImmediate(function () {
                 console.log("[+] HttpsURLConnection bypass");
             };
         } catch (e) {}
-
         /* =========================
            8. Detect & Log Requests (optional)
         ========================= */
@@ -141,8 +124,6 @@ setImmediate(function () {
                 return this.openConnection();
             };
         } catch (e) {}
-
         console.log("[+] All hooks applied");
-
     });
 });

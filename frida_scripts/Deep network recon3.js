@@ -1,7 +1,6 @@
 'use strict';
 
 // ====================================================================
-// MASTER BYPASS — com.Macom.emicollection
 // Single script — root detection + SSL pinning combined
 //
 // GATE 1 — MainActivity.onCreate()
@@ -12,7 +11,6 @@
 // GATE 2 — LoginFragment
 //   isFridaDetected() + all 5 sub-checks
 //   isEmulator() / isDebuggerAttached()
-//   RootBeer (o31) — all boolean methods → false
 //   All show*Dialog() suppressed
 //
 // LOW-LEVEL FALLBACKS
@@ -25,7 +23,6 @@
 //   Build fields          → spoofed to Samsung Galaxy S10
 //   FLAG_SECURE           → stripped
 //
-// SSL PINNING — targets exact classes confirmed loaded by enumeration:
 //   com.android.okhttp.CertificatePinner          → check() no-op
 //   com.android.org.conscrypt.TrustManagerImpl    → verifyChain() bypassed
 //   android.security.net.config.NetworkSecurityTrustManager → bypassed
@@ -52,7 +49,6 @@ Java.perform(function () {
     // ════════════════════════════════════════════════════════════════
 
     safeHook('SecurityUtils.isEmulator()', function () {
-        var SU = Java.use('com.Macom.emicollection.app.common.SecurityUtils');
         SU.isEmulator.implementation = function () {
             console.log('[*] SecurityUtils.isEmulator() → false');
             return false;
@@ -60,7 +56,6 @@ Java.perform(function () {
     });
 
     safeHook('SecurityUtils.hasEmulatorFiles()', function () {
-        var SU = Java.use('com.Macom.emicollection.app.common.SecurityUtils');
         SU.hasEmulatorFiles.implementation = function () {
             console.log('[*] SecurityUtils.hasEmulatorFiles() → false');
             return false;
@@ -68,14 +63,12 @@ Java.perform(function () {
     });
 
     safeHook('MainActivity.showSecurityErrorAndExit()', function () {
-        var MA = Java.use('com.Macom.emicollection.MainActivity');
         MA.showSecurityErrorAndExit.implementation = function (title, msg) {
             console.log('[!] showSecurityErrorAndExit() suppressed: ' + title);
         };
     });
 
     safeHook('MainActivity.dispatchTouchEvent()', function () {
-        var MA  = Java.use('com.Macom.emicollection.MainActivity');
         var ACA = Java.use('androidx.appcompat.app.AppCompatActivity');
         MA.dispatchTouchEvent
             .overload('android.view.MotionEvent')
@@ -97,7 +90,6 @@ Java.perform(function () {
     // ════════════════════════════════════════════════════════════════
 
     safeHook('LoginFragment.isFridaDetected()', function () {
-        var LF = Java.use('com.Macom.emicollection.content.login.presentation.LoginFragment');
         LF.isFridaDetected.implementation = function () {
             console.log('[*] isFridaDetected() → false');
             return false;
@@ -105,7 +97,6 @@ Java.perform(function () {
     });
 
     safeHook('LoginFragment sub-checks', function () {
-        var LF = Java.use('com.Macom.emicollection.content.login.presentation.LoginFragment');
         LF.detectFridaFiles.implementation       = function () { return false; };
         LF.detectFridaProcess.implementation     = function () { return false; };
         LF.detectFridaPort.implementation        = function () { return false; };
@@ -116,7 +107,6 @@ Java.perform(function () {
     });
 
     safeHook('LoginFragment dialog suppressors', function () {
-        var LF = Java.use('com.Macom.emicollection.content.login.presentation.LoginFragment');
         LF.showFridaDetectionDialog.implementation = function () {
             console.log('[!] showFridaDetectionDialog() suppressed');
         };
@@ -132,7 +122,6 @@ Java.perform(function () {
     });
 
     safeHook('RootBeer o31', function () {
-        var RB = Java.use('com.Macom.emicollection.o31');
         RB.class.getDeclaredMethods().forEach(function (m) {
             if (m.getReturnType().getName() === 'boolean') {
                 var name = m.getName();
@@ -220,12 +209,10 @@ Java.perform(function () {
 
     safeHook('qc1 string helper', function () {
         var FRIDA_NEEDLES = ['frida', 'gum-js-loop', ':5D8A', '5D8A', 'gmain', 'FRIDA'];
-        Java.use('com.Macom.emicollection.qc1')
             .class.getDeclaredMethods()
             .forEach(function (m) {
                 var name = m.getName();
                 try {
-                    Java.use('com.Macom.emicollection.qc1')[name]
                         .overloads.forEach(function (ovl) {
                             ovl.implementation = function () {
                                 var args = Array.prototype.slice.call(arguments);
@@ -291,7 +278,6 @@ Java.perform(function () {
     });
 
     // 4a2. okhttp3.CertificatePinner — lazy-loaded, not present at startup
-    //      Recon showed it's NOT shaded under com.Macom namespace.
     //      It loads lazily when the first HTTP call is made.
     //      Strategy: hook ClassLoader to intercept it the moment it loads,
     //      AND try direct hook (works if it loads before Java.perform completes).
@@ -580,7 +566,6 @@ Java.perform(function () {
     //     "da61debb8deda1425393f4b8c1191f78b4b37c1edca5ef532a2c7c2d1a676c30"
     //     We bypass by simply returning true without doing any of that.
     safeHook('HostNameVerifierSSL.verify()', function () {
-        var HNVSSL = Java.use('com.Macom.emicollection.app.common.HostNameVerifierSSL');
         HNVSSL.verify.overload('java.lang.String', 'javax.net.ssl.SSLSession')
             .implementation = function (hostname, session) {
                 console.log('[*] HostNameVerifierSSL.verify(' + hostname + ') → true (pin bypassed)');
@@ -592,7 +577,6 @@ Java.perform(function () {
     // the computed hex digest against the hardcoded pin hash.
     // If verify() hook is bypassed for any reason, this kills the comparison itself.
     safeHook('mc1.o000ooO0() — cert pin hash comparison', function () {
-        var mc1 = Java.use('com.Macom.emicollection.mc1');
         mc1.o000ooO0.overloads.forEach(function (ovl) {
             ovl.implementation = function () {
                 var args = Array.prototype.slice.call(arguments);
@@ -650,7 +634,6 @@ Java.perform(function () {
 
     // ════════════════════════════════════════════════════════════════
     // SECTION 5 — INLINE RECON: find shaded CertificatePinner at runtime
-    // Runs after 4s to let app fully init, then scans every Macom class
     // for check() method — that is the shaded okhttp3.CertificatePinner
     // ════════════════════════════════════════════════════════════════
     setTimeout(function () {
@@ -660,7 +643,6 @@ Java.perform(function () {
         Java.perform(function () {
             Java.enumerateLoadedClasses({
                 onMatch: function (cls) {
-                    if (cls.indexOf('com.Macom.emicollection') === -1) return;
                     try {
                         var C = Java.use(cls);
                         C.class.getDeclaredMethods().forEach(function (m) {

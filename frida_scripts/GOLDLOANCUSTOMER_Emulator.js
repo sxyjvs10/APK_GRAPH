@@ -1,4 +1,3 @@
-// final_bypass.js
 Java.perform(function () {
 
     // ── Block app self-termination ─────────────────────

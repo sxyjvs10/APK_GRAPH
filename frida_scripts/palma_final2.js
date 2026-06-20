@@ -1,11 +1,3 @@
-// ================================================
-// VRUKSHA MICROFIN - FULL SSL BYPASS + ROOT BYPASS
-// Fixes: CertPathValidatorException, TrustManagerImpl,
-//        X509TrustManagerExtensions, all root checks
-// Run: frida -U -f com.vruksha.microfin -l vruksha_final.js --no-pause
-// ================================================
-
-// ── Pre-register shared AllTrust class ONCE globally ─────────────
 var _allTrustInstance = null;
 var _allVerifierInstance = null;
 
@@ -13,7 +5,6 @@ function getAllTrust() {
     if (_allTrustInstance) return _allTrustInstance;
     var X509TrustManager = Java.use("javax.net.ssl.X509TrustManager");
     var AllTrust = Java.registerClass({
-        name: "com.vruksha.bypass.AllTrustFinal",
         implements: [X509TrustManager],
         methods: {
             checkClientTrusted: function (chain, authType) {},
@@ -31,7 +22,6 @@ function getAllVerifier() {
     if (_allVerifierInstance) return _allVerifierInstance;
     var HostnameVerifier = Java.use("javax.net.ssl.HostnameVerifier");
     var AllVerifier = Java.registerClass({
-        name: "com.vruksha.bypass.AllVerifierFinal",
         implements: [HostnameVerifier],
         methods: {
             verify: function (hostname, session) {
@@ -45,7 +35,6 @@ function getAllVerifier() {
 }
 
 Java.perform(function () {
-    console.log("[+] Vruksha Final Bypass Started");
 
     // ── BLOCK 1: Build fingerprint spoof ─────────────────────────
     try {
@@ -184,7 +173,6 @@ Java.perform(function () {
 
     console.log("[+] All root/integrity hooks applied");
 });
-
 
 // ── SSL UNPINNING (delayed — after app initialises) ───────────────
 setTimeout(function () {

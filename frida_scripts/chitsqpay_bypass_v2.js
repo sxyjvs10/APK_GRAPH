@@ -1,19 +1,6 @@
-// chitsqpay_bypass_v2.js
-// Fixed bypass for com.macom.chitsqpaynew
-// Based on decompiled MainActivity source
-//
-// Security checks found in source:
-//   1. getAppSignature() — SHA hash compared to "HzaZB5XtyrdGVyC5Sxwk2NgD46M"
-//      → calls finish() if mismatch
-//   2. RootUtil.isDeviceRooted() — called after 1500ms delay in onCreate
-//      → shows dialog + calls finish() if rooted
-//   3. FLAG_SECURE (8192) — blocks screenshots
-//   4. OkHttp / SSL pinning
-
 "use strict";
 
 Java.perform(function() {
-    console.log('\n[*] ChitsqPay bypass v2 starting...\n');
 
     // ── 1. FLAG_SECURE — enable screenshots ──
     try {
@@ -29,7 +16,6 @@ Java.perform(function() {
     // Source: if signature doesn't match → finish()
     // Fix: replace entire method with just rootCheck() call
     try {
-        var MainActivity = Java.use('com.macom.chitsqpaynew.activities.MainActivity');
         MainActivity.getAppSignature.implementation = function() {
             console.log('[+] getAppSignature() → bypassed, calling rootCheck()');
             this.rootCheck();
@@ -39,7 +25,6 @@ Java.perform(function() {
 
     // ── 3. RootUtil.isDeviceRooted() ──
     try {
-        var RootUtil = Java.use('com.macom.chitsqpaynew.utilities.RootUtil');
         RootUtil.isDeviceRooted.implementation = function() {
             console.log('[+] RootUtil.isDeviceRooted() → false');
             return false;
@@ -53,7 +38,6 @@ Java.perform(function() {
         // Hook the no-arg overload only
         Activity.finish.overload().implementation = function() {
             var name = this.getClass().getName();
-            if (name.indexOf('macom') !== -1 || name.indexOf('chitsq') !== -1) {
                 console.log('[!] finish() blocked in: ' + name);
                 return;
             }
@@ -281,7 +265,6 @@ Java.perform(function() {
 
     // ── 12. MySSLSocketFactory — app's custom socket factory ──
     try {
-        var MySSLSocketFactory = Java.use('com.macom.chitsqpaynew.utilities.MySSLSocketFactory');
         MySSLSocketFactory.getFixedSocketFactory.implementation = function() {
             console.log('[+] MySSLSocketFactory.getFixedSocketFactory() called');
             return this.getFixedSocketFactory();
@@ -363,7 +346,6 @@ Java.perform(function() {
             });
         } catch(_) {}
     }, 2500);
-    console.log('    Package  : com.macom.chitsqpaynew');
     console.log('    Signature: bypassed (getAppSignature no-op)');
     console.log('    Root     : RootUtil.isDeviceRooted() → false');
     console.log('    SSL      : OkHttp3 + conscrypt + NSC bypassed');
