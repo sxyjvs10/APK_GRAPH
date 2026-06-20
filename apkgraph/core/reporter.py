@@ -1095,17 +1095,58 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 
         # Extract detected protections dynamically
         protections = []
-        root_data = findings.get("RootDetection", {})
-        if root_data.get("detected"):
-            for impl in root_data.get("implementations", []):
-                protections.append(impl.get("name", "Unknown Root Check"))
         
+        # Root / Emulator / Hooking detection
+        root_data = findings.get("RootDetection", {})
+        if root_data.get("detected") or root_data.get("implementations"):
+            for impl in root_data.get("implementations", []):
+                protections.append(impl.get("name", "Unknown Root/Hook Check"))
+        
+        # SSL Pinning
         ssl_data = findings.get("SSLPinning", {})
-        if ssl_data.get("pinning"):
+        if ssl_data.get("pinning") or ssl_data.get("implementations"):
             for impl in ssl_data.get("implementations", []):
                 protections.append(impl.get("name", "Unknown SSL Pinning"))
+                
+        # Proxy Detection
+        proxy_data = findings.get("ProxyDetection", {})
+        if proxy_data.get("detected") or proxy_data.get("techniques"):
+            for tech in proxy_data.get("techniques", []):
+                protections.append(tech.get("name", "Proxy Detection"))
+                
+        # String Obfuscation / Packer
+        deobf_data = findings.get("Deobfuscation", {})
+        if deobf_data.get("detected_methods"):
+            protections.append("String Encryption / Custom Packer")
+            
+        # Third-party Security SDKs
+        sdk_data = findings.get("SDKFingerprint", [])
+        for sdk in sdk_data:
+            sdk_name = sdk.get("sdk", "")
+            lower_name = sdk_name.lower()
+            if any(keyword in lower_name for keyword in ["guard", "protect", "shield", "root", "obfuscat", "secure", "anti", "packer"]):
+                protections.append(f"Security SDK ({sdk_name})")
 
+        # Remove duplicates
+        protections = list(dict.fromkeys(protections))
         prot_str = ", ".join(protections) if protections else "None detected (Standard hooks should work)"
+
+        # Additional deep extraction for Root/SSL
+        deep_context = []
+        if root_data.get("custom_methods"):
+            deep_context.append("Root Check Methods: " + ", ".join(root_data["custom_methods"][:5]))
+        if root_data.get("su_path_checks"):
+            deep_context.append("Hardcoded Root Paths: " + ", ".join(root_data["su_path_checks"][:5]))
+        if ssl_data.get("classes_with_pinning"):
+            deep_context.append("SSL Pinning Classes: " + ", ".join(ssl_data["classes_with_pinning"][:5]))
+        if ssl_data.get("hardcoded_pins"):
+            pins = [p.get("value") for p in ssl_data["hardcoded_pins"] if isinstance(p, dict)]
+            if pins:
+                deep_context.append("Hardcoded Cert Pins: " + ", ".join(pins[:3]))
+                
+        deep_context_str = "\n   ".join(deep_context)
+        if deep_context_str:
+            deep_context_str = f"\n   Extracted Code Context:\n   {deep_context_str}"
 
         html += f"""
 <div class="path-card" style="border-color:var(--accent); background:var(--card); margin-top: 2rem;">
@@ -1130,7 +1171,7 @@ Write a Frida hook in Javascript for the following target:
 1. Target Class Name: 'com.example.security.AuthValidator'
 2. Target Method Name: 'isTokenValid'
 3. Protections Present: The app is using [ {self._esc(prot_str)} ] 
-   which might interfere with standard hooks.
+   which might interfere with standard hooks.{self._esc(deep_context_str)}
 4. Objective: I need to bypass this validation. Hook the method so that it intercepts 
    the execution, ignores the original logic, and unconditionally returns 'true'.
 
