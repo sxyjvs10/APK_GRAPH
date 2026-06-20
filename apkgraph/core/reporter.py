@@ -534,26 +534,50 @@ tr:last-child td{{border-bottom:none}}
     }});
 
     // Feature 3: Search Bar
+    let currentSearchQuery = "";
+    let currentSearchIndex = 0;
+    let matchedNodesCache = [];
+
     document.getElementById('kg-search-btn').addEventListener('click', () => {{
       const q = document.getElementById('kg-search').value.toLowerCase();
       if (!q) return;
-      const matchedNodes = nodes.get({{
-          filter: function(item) {{
-              return (item.label && item.label.toLowerCase().includes(q)) || 
-                     (item.title && item.title.toLowerCase().includes(q));
+      
+      if (q !== currentSearchQuery) {{
+          currentSearchQuery = q;
+          currentSearchIndex = 0;
+          matchedNodesCache = nodes.get({{
+              filter: function(item) {{
+                  return (item.label && item.label.toLowerCase().includes(q)) || 
+                         (item.title && item.title.toLowerCase().includes(q));
+              }}
+          }});
+      }} else {{
+          currentSearchIndex++;
+          if (currentSearchIndex >= matchedNodesCache.length) {{
+              currentSearchIndex = 0;
           }}
-      }});
-      if (matchedNodes.length > 0) {{
+      }}
+
+      if (matchedNodesCache.length > 0) {{
+        let targetNode = matchedNodesCache[currentSearchIndex];
         // Unhide if hidden
-        if (matchedNodes[0].hidden) {{
-            nodes.update({{id: matchedNodes[0].id, hidden: false}});
+        if (targetNode.hidden) {{
+            nodes.update({{id: targetNode.id, hidden: false}});
         }}
-        network.focus(matchedNodes[0].id, {{ scale: 1.2, animation: true }});
-        network.selectNodes([matchedNodes[0].id]);
-        network.emit("click", {{nodes: [matchedNodes[0].id]}});
+        network.focus(targetNode.id, {{ scale: 1.2, animation: true }});
+        network.selectNodes([targetNode.id]);
+        network.emit("click", {{nodes: [targetNode.id]}});
+        
+        document.getElementById('kg-search-btn').innerText = `Next (${{currentSearchIndex + 1}}/${{matchedNodesCache.length}})`;
       }} else {{
         alert("No matching nodes found.");
+        document.getElementById('kg-search-btn').innerText = "Search";
       }}
+    }});
+
+    document.getElementById('kg-search').addEventListener('input', () => {{
+        document.getElementById('kg-search-btn').innerText = "Search";
+        currentSearchQuery = "";
     }});
 
     // Feature 4: Filters
