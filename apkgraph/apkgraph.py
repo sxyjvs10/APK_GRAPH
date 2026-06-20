@@ -36,6 +36,7 @@ from apkgraph.engines.native_lib import NativeLibraryAnalyzer
 from apkgraph.engines.yara_scanner import YaraScannerAnalyzer
 from apkgraph.engines.deobfuscator import DeobfuscationAnalyzer
 from apkgraph.engines.cross_platform import CrossPlatformAnalyzer
+from apkgraph.engines.custom_yaml import CustomYamlAnalyzer
 
 from apkgraph.core.graph import KnowledgeGraph
 from apkgraph.core.predictor import AttackPathPredictor
@@ -70,6 +71,7 @@ ALL_MODULES = {
     "YaraScanner":           YaraScannerAnalyzer,
     "Deobfuscation":         DeobfuscationAnalyzer,
     "CrossPlatform":         CrossPlatformAnalyzer,
+    "CustomYAML":            CustomYamlAnalyzer,
 }
 
 _PHASE_APK_LOAD    = 10
@@ -103,7 +105,9 @@ _RATING_COLOR = {
               help="Enable Hybrid Dynamic Execution (Auto-Pwn via ADB/Frida)")
 @click.option("--fuzz", is_flag=True, default=False,
               help="Generate an Intent Fuzzer script for exported components")
-def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
+@click.option("--rules", "-r", type=click.Path(exists=True), default=None,
+              help="Path to a custom YAML rule file or directory")
+def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz, rules):
     """
     APKGraph v2.0 — Android Attack Surface Intelligence Platform
     """
@@ -140,6 +144,7 @@ def main(apk_path, output, fmt, modules, timeout, verbose, dynamic, fuzz):
             #  1. Load APK 
             processor = APKProcessor(apk_path)
             apk_meta = processor.process()
+            apk_meta["rules_path"] = rules
             
             app_name = apk_meta.get("app_name", "Unknown")
             app_pkg  = apk_meta.get("package", "unknown")
