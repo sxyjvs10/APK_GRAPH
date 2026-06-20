@@ -145,6 +145,7 @@ class ReportGenerator:
             ("DataStorage",  "Insecure Data Storage"),
             ("Manifest",     "Exported Components"),
             ("Endpoint",     "API Endpoints"),
+            ("CustomYAML",   "Custom YAML Rules Findings"),
         ]
 
         finding_num = 0
@@ -819,6 +820,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             ("RootDetection", "M8 & M9: Reverse Engineering (Anti-Analysis)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
             ("HiddenFunction", "M10: Extraneous Functionality", lambda d: d if isinstance(d, list) else []),
             ("ICC",         " Cross-Component Taint Flows",     lambda d: d if isinstance(d, list) else []),
+            ("CustomYAML",  "Custom YAML Security Rules",       lambda d: d if isinstance(d, list) else []),
         ]
 
         def sev_rank(s):
