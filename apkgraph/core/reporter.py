@@ -808,6 +808,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         sections = [
             ("Manifest",    "M1: Improper Platform Usage (Exported Components)", lambda d: d.get("exported_components",[]) if isinstance(d,dict) else []),
             ("WebView",     "M1 & M7: Client Code Quality (WebViews)", lambda d: d if isinstance(d, list) else []),
+            ("DeepLink",    "M1: Improper Platform Usage (DeepLinks)", lambda d: [{"type": "DeepLink", "adb_command": c, "name": "Vulnerable Schema/Host Link"} for c in d.get("adb_commands", [])] if isinstance(d, dict) else []),
             ("DataStorage", "M2: Insecure Data Storage",lambda d: d if isinstance(d, list) else []),
             ("Endpoint",    "M3: Insecure Communication (Endpoints)",       lambda d: [e for e in d.get("urls",[]) if e.get("categories")] if isinstance(d,dict) else []),
             ("SSLPinning",  "M3: Insecure Communication (SSL Pinning)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
@@ -877,6 +878,11 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                 cvss   = repro.get("cvss", "")
                 steps  = repro.get("steps", [])
                 poc    = repro.get("poc", "")
+                
+                if not poc and item.get("adb_command"):
+                    poc = item.get("adb_command")
+                    steps.append("Connect your device via USB with adb installed.")
+                    steps.append("Copy and run the generated adb payload below to dynamically test the component.")
 
                 # Evidence value
                 evidence = (

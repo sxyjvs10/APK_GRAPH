@@ -7,7 +7,8 @@ class DeepLinkAnalyzer(BaseIntelligenceModule):
             "schemes": set(),
             "hosts": set(),
             "app_links": False,
-            "intent_filters": []
+            "intent_filters": [],
+            "adb_commands": []
         }
 
         # XML namespace for Android
@@ -23,15 +24,28 @@ class DeepLinkAnalyzer(BaseIntelligenceModule):
                         if auto_verify == "true":
                             deeplink_findings["app_links"] = True
                         
-                        # Extract schemes and hosts
+                        # Extract schemes and hosts to build adb URIs
+                        schemes_here = []
+                        hosts_here = []
                         for data in intent_filter.findall("data"):
                             scheme = data.get("{http://schemas.android.com/apk/res/android}scheme")
                             if scheme:
                                 deeplink_findings["schemes"].add(scheme)
+                                schemes_here.append(scheme)
                             
                             host = data.get("{http://schemas.android.com/apk/res/android}host")
                             if host:
                                 deeplink_findings["hosts"].add(host)
+                                hosts_here.append(host)
+                                
+                        # Generate ADB exploit payloads for testing the deep links
+                        if schemes_here:
+                            for scheme in schemes_here:
+                                host_str = hosts_here[0] if hosts_here else "example"
+                                uri = f"{scheme}://{host_str}/exploit_test"
+                                cmd = f'adb shell am start -W -a android.intent.action.VIEW -d "{uri}"'
+                                if cmd not in deeplink_findings["adb_commands"]:
+                                    deeplink_findings["adb_commands"].append(cmd)
 
         deeplink_findings["schemes"] = list(deeplink_findings["schemes"])
         deeplink_findings["hosts"] = list(deeplink_findings["hosts"])

@@ -22,13 +22,17 @@ class ManifestAnalyzer(BaseIntelligenceModule):
             if not perm.startswith("android.permission"):
                 manifest_findings["custom_permissions"].append(perm)
 
+        # Package name is needed for adb commands
+        pkg = self.apk_data.get('package', 'com.example.app')
+
         # Analyze Exported Components
         for activity in apk.get_activities():
             if self.is_exported(activity):
                 manifest_findings["exported_components"].append({
                     "type": "activity", 
                     "name": activity,
-                    "source": "library" if self.is_library(activity) else "app"
+                    "source": "library" if self.is_library(activity) else "app",
+                    "adb_command": f"adb shell am start -n {pkg}/{activity}"
                 })
 
         for service in apk.get_services():
@@ -36,7 +40,8 @@ class ManifestAnalyzer(BaseIntelligenceModule):
                 manifest_findings["exported_components"].append({
                     "type": "service", 
                     "name": service,
-                    "source": "library" if self.is_library(service) else "app"
+                    "source": "library" if self.is_library(service) else "app",
+                    "adb_command": f"adb shell am startservice -n {pkg}/{service}"
                 })
 
         for receiver in apk.get_receivers():
@@ -44,7 +49,8 @@ class ManifestAnalyzer(BaseIntelligenceModule):
                 manifest_findings["exported_components"].append({
                     "type": "receiver", 
                     "name": receiver,
-                    "source": "library" if self.is_library(receiver) else "app"
+                    "source": "library" if self.is_library(receiver) else "app",
+                    "adb_command": f"adb shell am broadcast -n {pkg}/{receiver}"
                 })
 
         for provider in apk.get_providers():
@@ -52,7 +58,8 @@ class ManifestAnalyzer(BaseIntelligenceModule):
                 manifest_findings["exported_components"].append({
                     "type": "provider", 
                     "name": provider,
-                    "source": "library" if self.is_library(provider) else "app"
+                    "source": "library" if self.is_library(provider) else "app",
+                    "adb_command": f"adb shell content query --uri content://{provider.replace('.','').lower()}  # Note: Requires exact URI path"
                 })
 
         self.findings = manifest_findings

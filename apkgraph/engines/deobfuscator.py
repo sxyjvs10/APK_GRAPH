@@ -73,13 +73,29 @@ class DeobfuscationAnalyzer(BaseIntelligenceModule):
                         # Find xrefs to see where this decryption routine is used
                         xrefs_from = len(list(method_analysis.get_xref_to()))  # get_xref_to() gives where this method is called FROM
                         
+                        # Build a proper dynamic Frida hook for String Decryption
+                        # Convert Lcom/app/Utils; to com.app.Utils
+                        clean_class = cls_name.strip("L").replace("/", ".").strip(";")
+                        
+                        hook_script = f"""Java.perform(function() {{
+    var TargetClass = Java.use("{clean_class}");
+    var overloads = TargetClass.{method_name}.overloads;
+    for (var i = 0; i < overloads.length; i++) {{
+        overloads[i].implementation = function() {{
+            var decryptedStr = this.{method_name}.apply(this, arguments);
+            console.log("[+] Decrypted String from {clean_class}.{method_name}: " + decryptedStr);
+            return decryptedStr;
+        }};
+    }}
+}});"""
+
                         result["detected_methods"].append({
                             "class": cls_name,
                             "method": f"{method_name}{descriptor}",
                             "reason": reason,
                             "xref_count": xrefs_from,
                             "severity": severity,
-                            "frida_hook": f"Interceptor.attach(Module.findExportByName(null, '{method_name}'), {{ onLeave: function(retval) {{ console.log('Decrypted String: ' + Java.cast(retval, Java.use('java.lang.String'))); }} }});"
+                            "frida_hook": hook_script
                         })
                         
                         if severity == SEVERITY_HIGH:
