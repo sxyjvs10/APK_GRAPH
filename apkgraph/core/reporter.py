@@ -455,10 +455,19 @@ tr:last-child td{{border-bottom:none}}
     const container = document.getElementById('kg-network');
     const data = {{ nodes: nodes, edges: edges }};
     const options = {{
-      physics: {{ solver: 'forceAtlas2Based', stabilization: {{ iterations: 150 }} }},
+      layout: {{
+        hierarchical: {{
+          direction: 'LR',
+          sortMethod: 'directed',
+          nodeSpacing: 80,
+          levelSeparation: 200,
+          treeSpacing: 100
+        }}
+      }},
+      physics: {{ enabled: false }},
       nodes: {{ font: {{ color: '#e6edf3', size: 12 }} }},
-      edges: {{ smooth: {{ type: 'continuous' }} }},
-      interaction: {{ hover: true, tooltipDelay: 200, zoomView: true }}
+      edges: {{ smooth: {{ type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.4 }} }},
+      interaction: {{ hover: true, tooltipDelay: 200, zoomView: true, dragNodes: true }}
     }};
     new vis.Network(container, data, options);
   </script>
