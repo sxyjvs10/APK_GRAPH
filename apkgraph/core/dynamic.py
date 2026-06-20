@@ -8,6 +8,7 @@ and auto-injects the highest-confidence Frida bypass scripts identified during t
 import subprocess
 import time
 import os
+import shutil
 from rich.console import Console
 
 console = Console()
@@ -32,12 +33,13 @@ class DynamicRunner:
         console.print("\n[bold cyan]── Hybrid Dynamic Execution (Auto-Pwn) ──[/]")
         
         # Check adb
-        if not self._run_cmd(["which", "adb"]):
-            console.print("[red]❌ ADB not found in PATH.[/]")
+        adb_path = shutil.which("adb") or shutil.which("adb.exe")
+        if not adb_path and not os.path.exists("adb.exe"):
+            console.print("[red]❌ ADB not found in PATH or current directory.[/]")
             return False
             
         # Check frida
-        if not self._run_cmd(["which", "frida"]):
+        if not shutil.which("frida") and not shutil.which("frida.exe"):
             console.print("[red]❌ frida-tools not found in PATH.[/]")
             return False
             
