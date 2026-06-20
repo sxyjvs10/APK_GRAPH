@@ -100,7 +100,7 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
 
         detected_sigs = set()
 
-        #  Phase 1: Class-level scan 
+        # Phase 1: Class-level scan 
         for cls_analysis in analysis.get_classes():
             cls_name = cls_analysis.name
             for sig, info in _ROOT_CLASS_SIGS.items():
@@ -134,18 +134,35 @@ class RootDetectionAnalyzer(BaseIntelligenceModule):
 
                 if method_name in _ROOT_METHOD_NAMES:
                     entry = f"{cls_name}->{method_name}()"
-                    # Extract Dalvik code for AI prompt
-                    code_snippet = []
+                    # Extract code for AI prompt (Java first, fallback to Dalvik)
+                    code_str = ""
                     try:
-                        for instr in method_obj.get_instructions():
-                            try:
-                                code_snippet.append(f"{instr.get_name()} {instr.get_output()}")
-                            except Exception:
-                                pass
+                        # Try to decompile to Java using DAD
+                        from androguard.decompiler.dad.decompile import DvMethod
+                        dv = DvMethod(method_analysis)
+                        dv.process()
+                        code_str = dv.get_source()
+                        if code_str:
+                            code_str = "(Java Decompiled via DAD)\n" + code_str
                     except Exception:
-                        pass
-                    
-                    code_str = "\n".join(code_snippet[:50]) # limit 50 lines to avoid massive prompt
+                        code_str = ""
+
+                    if not code_str:
+                        # Fallback to Dalvik
+                        code_snippet = []
+                        try:
+                            for instr in method_obj.get_instructions():
+                                try:
+                                    code_snippet.append(f"{instr.get_name()} {instr.get_output()}")
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                        
+                        if code_snippet:
+                            code_str = "(Dalvik Assembly Fallback)\n" + "\n".join(code_snippet[:50])
+                        else:
+                            code_str = ""
                     
                     if not any(isinstance(m, dict) and m.get("method") == entry for m in result["custom_methods"]):
                         result["custom_methods"].append({"method": entry, "code": code_str})

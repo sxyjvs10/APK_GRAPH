@@ -137,16 +137,32 @@ class SSLPinningAnalyzer(BaseIntelligenceModule):
                 if method_name in ("checkServerTrusted", "checkClientTrusted", "getAcceptedIssuers"):
                     sig_key = f"{cls_name}#TrustManager"
                     
-                    code_snippet = []
+                    code_str = ""
                     try:
-                        for instr in method_obj.get_instructions():
-                            try:
-                                code_snippet.append(f"{instr.get_name()} {instr.get_output()}")
-                            except Exception:
-                                pass
+                        from androguard.decompiler.dad.decompile import DvMethod
+                        dv = DvMethod(method_analysis)
+                        dv.process()
+                        code_str = dv.get_source()
+                        if code_str:
+                            code_str = "(Java Decompiled via DAD)\n" + code_str
                     except Exception:
-                        pass
-                    code_str = "\n".join(code_snippet[:50])
+                        code_str = ""
+                        
+                    if not code_str:
+                        code_snippet = []
+                        try:
+                            for instr in method_obj.get_instructions():
+                                try:
+                                    code_snippet.append(f"{instr.get_name()} {instr.get_output()}")
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                        
+                        if code_snippet:
+                            code_str = "(Dalvik Assembly Fallback)\n" + "\n".join(code_snippet[:50])
+                        else:
+                            code_str = ""
                     
                     if sig_key not in detected_sigs:
                         detected_sigs.add(sig_key)
