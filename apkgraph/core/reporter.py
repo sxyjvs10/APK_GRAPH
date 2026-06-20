@@ -1031,9 +1031,16 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             return ""
             
         html = "<h2>Statically Verified Frida Hooks</h2>"
-        html += '<p style="font-size:0.9rem; color:var(--muted)">The following Frida scripts in your repository hook classes that were statically verified to exist within this specific APK.</p>'
+        html += '<p style="font-size:0.9rem; color:var(--muted)">The following Frida scripts hook classes that were statically verified to exist within this specific APK.</p>'
         
-        for script in matched:
+        # Sort scripts: High confidence first, then by number of matched targets
+        matched = sorted(matched, key=lambda x: (x.get("confidence") == "High", x.get("matched_targets", 0)), reverse=True)
+        
+        # Show only top 3 scripts
+        top_scripts = matched[:3]
+        omitted = len(matched) - 3
+        
+        for script in top_scripts:
             is_high = script.get("confidence") == "High"
             border_col = "var(--danger)" if is_high else "var(--warning)"
             title_col  = "var(--danger)" if is_high else "var(--warning)"
@@ -1053,6 +1060,26 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
   <pre class="poc" style="border-color:{border_col}; max-height: 400px; overflow-y: auto;">{self._esc(js_content)}</pre>
 </div>"""
 
+        if omitted > 0:
+            html += f'<div style="text-align:center; padding: 10px; margin-bottom: 2rem; color: var(--muted); font-size: 0.9rem;"><em>... and {omitted} more verified scripts. Check the JSON report to try more options.</em></div>'
+
+        html += """
+<div class="path-card" style="border-color:var(--accent); background:var(--card); margin-top: 2rem;">
+  <div class="path-title" style="color:var(--accent)">Create a Custom Hook (AI Assistant Guide)</div>
+  <div class="path-meta">Need to hook a different class? Provide these 3 components to an AI assistant:</div>
+  <ol style="font-size:.85rem; margin-top: 10px; line-height: 1.6;">
+    <li><strong>Target Class Name:</strong> The full package path (e.g., <code>com.example.app.SecretManager</code>) found in the Location tags above.</li>
+    <li><strong>Target Method Name:</strong> The exact method name you want to intercept (e.g., <code>decryptKey</code>).</li>
+    <li><strong>Return Type / Arguments:</strong> Ask the AI to build a hook that dumps the arguments or forces the return value (e.g., <code>return true;</code>).</li>
+  </ol>
+  <pre class="poc" style="border-color:var(--accent); font-size: 0.8rem; margin-top: 10px;">
+// Example AI Prompt Template:
+"Write a Frida script to hook the class 'com.example.MyClass'.
+ I want to intercept the method 'checkLicense()' and force it 
+ to always return true. Please provide the ready-to-run JS."
+</pre>
+</div>
+"""
         return html
 
     @staticmethod
