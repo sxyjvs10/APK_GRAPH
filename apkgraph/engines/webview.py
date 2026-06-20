@@ -14,7 +14,7 @@ _WEBVIEW_SIGS = {
     "setAllowUniversalAccessFromFileURLs":    ("Universal File Access Enabled (UXSS)",     SEVERITY_CRITICAL),
     "setAllowFileAccess":                     ("File Access Enabled",                      SEVERITY_HIGH),
     "setAllowFileAccessFromFileURLs":         ("File URL Cross-Origin Access",             SEVERITY_HIGH),
-    "setJavaScriptEnabled":                   ("JavaScript Enabled",                       SEVERITY_MEDIUM),
+    "setJavaScriptEnabled":                   ("JavaScript Enabled",                       SEVERITY_LOW),
     "evaluateJavascript":                     ("evaluateJavascript() — XSS injection pt",  SEVERITY_HIGH),
 }
 

@@ -1,5 +1,6 @@
 from apkgraph.core.engine import BaseIntelligenceModule
 from apkgraph.core.taint import TaintEngine
+from apkgraph.core.text_heuristics import shannon_entropy, _is_structural_noise
 
 class CryptoAnalyzer(BaseIntelligenceModule):
     def __init__(self, apk_data):
@@ -33,32 +34,33 @@ class CryptoAnalyzer(BaseIntelligenceModule):
                         "type": "Weak Algorithm String",
                         "value": algo,
                         "context": string,
-                        "risk": "Medium"
+                        "risk": "Low"  # Downgraded: presence of string does not mean usage
                     })
 
         # 2. PRO MOVE: Taint Analysis for Key Material
         # Check if high-entropy strings (potential keys) flow into crypto sinks
-        # (This uses androguard's string cross-references)
         for string_analysis in analysis.get_strings():
             val = string_analysis.get_value()
-            if len(val) < 8: continue
+            if len(val) < 16 or len(val) > 256: continue
             
-            # If this looks like a potential key/secret
-            if not self.is_library(val):
-                # Find where this string is used
-                for _, method in string_analysis.get_xref_from():
-                    if self.is_library(method.class_name): continue
-                    
-                    # Trace flow from method using string to crypto sink
-                    paths = taint.find_paths([method], self.crypto_sinks, max_depth=3)
-                    if paths:
-                        crypto_findings.append({
-                            "type": "Hardcoded Key Material",
-                            "value": val[:16] + "...",
-                            "usage_method": f"{method.class_name}->{method.name}",
-                            "sink_path": paths[0],
-                            "risk": "Critical"
-                        })
+            # Use robust text heuristics to eliminate false positives
+            if _is_structural_noise(val) or shannon_entropy(val) < 3.8:
+                continue
+                
+            # If this looks like a genuine high-entropy secret, trace it!
+            for _, method in string_analysis.get_xref_from():
+                if self.is_library(method.class_name): continue
+                
+                # Trace flow from method using string to crypto sink
+                paths = taint.find_paths([method], self.crypto_sinks, max_depth=3)
+                if paths:
+                    crypto_findings.append({
+                        "type": "Hardcoded Key Material in Crypto Sink",
+                        "value": val[:16] + "...",
+                        "usage_method": f"{method.class_name}->{method.name}",
+                        "sink_path": paths[0],
+                        "risk": "Critical"
+                    })
 
         self.findings = crypto_findings
         return self.findings

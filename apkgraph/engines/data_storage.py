@@ -90,8 +90,8 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
                                 "type": "Unencrypted SQLite Database",
                                 "location": f"{class_name}->{method_name}",
                                 "method": sql_method,
-                                "risk": SEVERITY_HIGH,
-                                "note": "SQLite database is not encrypted. Root or backup access exposes all data.",
+                                "risk": SEVERITY_LOW,
+                                "note": "SQLite database is not encrypted. (Info/Low risk unless storing sensitive PII/Auth data)",
                             })
                             break
 
@@ -102,8 +102,8 @@ class DataStorageAnalyzer(BaseIntelligenceModule):
                                 "type": "Sensitive SharedPreferences Key",
                                 "location": f"{class_name}->{method_name}",
                                 "snippet": output[:120],
-                                "risk": SEVERITY_MEDIUM,
-                                "note": "SharedPreferences are stored as plaintext XML and readable on rooted devices.",
+                                "risk": SEVERITY_LOW,
+                                "note": "SharedPreferences may store sensitive auth material. Verify if token/pwd is stored in plaintext.",
                             })
 
         # ── Check hardcoded file paths with sensitive names ──────────

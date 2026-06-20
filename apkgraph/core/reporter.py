@@ -804,13 +804,18 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
         counter = 0
 
         sections = [
-            ("JWT",         "🔑 JWT Tokens",          lambda d: d if isinstance(d, list) else []),
-            ("Secret",      "🔐 Hardcoded Secrets",   lambda d: d if isinstance(d, list) else []),
-            ("WebView",     "🌐 WebView Vulnerabilities", lambda d: d if isinstance(d, list) else []),
-            ("ICC",         "🔗 ICC Taint Flows",     lambda d: d if isinstance(d, list) else []),
-            ("DataStorage", "💾 Insecure Data Storage",lambda d: d if isinstance(d, list) else []),
-            ("Manifest",    "📦 Exported Components", lambda d: d.get("exported_components",[]) if isinstance(d,dict) else []),
-            ("Endpoint",    "🌍 API Endpoints",       lambda d: [e for e in d.get("urls",[]) if e.get("categories")] if isinstance(d,dict) else []),
+            ("Manifest",    "📦 M1: Improper Platform Usage (Exported Components)", lambda d: d.get("exported_components",[]) if isinstance(d,dict) else []),
+            ("WebView",     "🌐 M1 & M7: Client Code Quality (WebViews)", lambda d: d if isinstance(d, list) else []),
+            ("DataStorage", "💾 M2: Insecure Data Storage",lambda d: d if isinstance(d, list) else []),
+            ("Endpoint",    "🌍 M3: Insecure Communication (Endpoints)",       lambda d: [e for e in d.get("urls",[]) if e.get("categories")] if isinstance(d,dict) else []),
+            ("SSLPinning",  "🛡️ M3: Insecure Communication (SSL Pinning)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
+            ("Secret",      "🔐 M4 & M10: Extraneous Functionality (Hardcoded Secrets)",   lambda d: d if isinstance(d, list) else []),
+            ("JWT",         "🔑 M4: Insecure Authentication (JWT)",          lambda d: d if isinstance(d, list) else []),
+            ("Crypto",      "🔏 M5: Insufficient Cryptography", lambda d: d if isinstance(d, list) else []),
+            ("IntentHijacking", "🔗 M1: Improper Platform Usage (Intent Hijacking)", lambda d: d if isinstance(d, list) else []),
+            ("RootDetection", "🛡️ M8 & M9: Reverse Engineering (Anti-Analysis)", lambda d: d.get("implementations",[]) if isinstance(d, dict) else []),
+            ("HiddenFunction", "👻 M10: Extraneous Functionality", lambda d: d if isinstance(d, list) else []),
+            ("ICC",         "🔗 Cross-Component Taint Flows",     lambda d: d if isinstance(d, list) else []),
         ]
 
         for key, section_title, extractor in sections:
@@ -822,8 +827,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             shown = 0
             for item in items:
                 repro = item.get("reproduction", {})
-                if not repro:
-                    continue
+                
                 if shown >= 30:
                     remaining = len(items) - shown
                     html += f'<p style="font-size:.78rem;color:var(--muted);margin:.5rem 0 1rem">... and {remaining} more findings (see JSON report)</p>'
@@ -832,9 +836,11 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                 counter += 1
                 shown   += 1
 
-                sev    = item.get("confidence") or item.get("risk") or "Medium"
-                threat = repro.get("threat", "Unknown threat")
-                impact = repro.get("impact", "")
+                sev    = item.get("confidence") or item.get("risk") or item.get("severity") or "Medium"
+                
+                # Fallback extraction for items without reproduction blocks
+                threat = repro.get("threat") or item.get("vulnerability") or item.get("type") or item.get("description") or "Security Finding"
+                impact = repro.get("impact") or item.get("note") or item.get("reason") or "Potential security risk detected statically."
                 cvss   = repro.get("cvss", "")
                 steps  = repro.get("steps", [])
                 poc    = repro.get("poc", "")
