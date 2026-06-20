@@ -878,6 +878,15 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                     loc_parts.append(str(item.get("usage_method")))
                     if item.get("sink_path"):
                         loc_parts.append(f"Sink: {item.get('sink_path')}")
+                elif item.get("source_method"):
+                    loc_parts.append(str(item.get("source_method")))
+                    if item.get("sink_path"):
+                        loc_parts.append(f"Sink: {item.get('sink_path')}")
+                elif item.get("activity"):
+                    loc_parts.append(str(item.get("activity")))
+                elif item.get("name") and not evidence:
+                    # Fallback for Manifest Exported Components
+                    loc_parts.append(str(item.get("name")))
                     
                 loc_str = " | ".join(loc_parts)
 
