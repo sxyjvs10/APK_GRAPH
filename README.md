@@ -9,16 +9,17 @@ APKGraph is a high-efficiency Mobile Application Security Testing (MAST) platfor
 - **Multi-Layered Analysis**: Deep extraction of Manifest, DEX, Resources, and Native JNI components.
 - **Hybrid Dynamic Execution (Auto-Pwn)**: Bridges the static-to-dynamic gap by actively hooking devices via Frida and ADB.
 - **22 Specialized Intelligence Engines**:
-  - **Cross-Boundary Taint Tracker**: Traces user input from Dalvik boundaries (e.g., DeepLinks/ContentProviders) straight into C++ JNI code (`[NATIVE_JNI_SINK]`).
-  - **Cross-Platform Support**: Scans and parses `index.android.bundle` for React Native Javascript exposure.
-  - **Deobfuscator Engine**: Detects XOR/AES string decryption loops and automatically drops Frida `onLeave` hooks to dump decrypted strings at runtime.
-  - **SCA & Yara Scanner**: Scans for known software components and malware signatures using bundled YARA rules.
-  - **Native Library Analyzer**: Analyzes `.so` binaries for hidden strings and API secrets.
-  - **Secret & JWT Analyzers**: API keys, AWS secrets, and hardcoded JWT extraction with Base64 heuristics.
-  - **Deep Link & ICC Analyzers**: Maps Intent flows and URI schemes.
-  - **Backend API Export**: Automatically extracts all endpoints into an `_endpoints.txt` and generates a ready-to-run `.sh` script for fuzzing via `ffuf` or `sqlmap`.
-- **Attack Path Prediction**: Automatically predicts exploitation chains (e.g., Deep Link -> Auth Bypass -> Data Leakage).
-- **Automated HTML Reporting**: Generates a single, beautiful HTML file containing all findings, CVSS severities, and copy-ready PoC reproduction steps.
+  - **App & Configuration**: Manifest, WebView, Environment Discovery, and SDK Fingerprint Analyzers.
+  - **Data & Secrets**: Secret, JWT, Endpoint, and Data Storage Analyzers.
+  - **Networking & Crypto**: Crypto, SSL Pinning, Network Security Config, and Proxy Detection Analyzers.
+  - **Anti-Reversing & Evasion**: Root Detection, Deobfuscation, Hidden Function, and Frida Hook Analyzers.
+  - **Component Interactions**: Deep Link, Inter-Component Communication (ICC), and Intent Hijacking Analyzers.
+  - **Native & Cross-Platform**: Cross-Platform (React Native), Native Library (`.so`), and YARA Scanner Analyzers.
+- **Knowledge Graph & Correlation**: Automatically correlates findings from all 22 engines into a comprehensive Knowledge Graph (Nodes/Edges).
+- **Attack Path Prediction**: Automatically predicts exploitation chains (e.g., Deep Link -> Auth Bypass -> Data Leakage) based on the Knowledge Graph.
+- **Risk Scorer & Bypass Recommender**: Calculates an overall risk score/rating and recommends security bypasses for specific protections.
+- **Intent Fuzzer Generator**: Automatically generates Python fuzzer scripts tailored to the exported components found in the target APK.
+- **Automated Reporting**: Generates comprehensive JSON, Markdown, and beautiful HTML reports containing all findings, CVSS severities, and copy-ready PoC reproduction steps.
 
 ## 🏗️ Architecture
 
