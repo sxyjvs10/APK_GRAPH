@@ -1137,7 +1137,11 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             # custom_methods is now a list of dicts: {"method": "...", "code": "..."}
             for m in root_data["custom_methods"][:2]:
                 if isinstance(m, dict):
-                    deep_context.append(f"Root Method: {m.get('method')}\nDalvik Code:\n{m.get('code')}")
+                    code = m.get('code', '').strip()
+                    if code:
+                        deep_context.append(f"Root Method: {m.get('method')}\nDalvik Code:\n{code}")
+                    else:
+                        deep_context.append(f"Root Method: {m.get('method')}\nDalvik Code: [Native or Interface method - No Dalvik bytecode]")
                 elif isinstance(m, str):
                     deep_context.append(f"Root Method: {m}")
                     
@@ -1146,8 +1150,12 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             
         if ssl_data.get("implementations"):
             for impl in ssl_data.get("implementations", [])[:2]:
-                if impl.get("code_snippet"):
-                    deep_context.append(f"SSL Pinning Method: {impl.get('class')}->{impl.get('method')} {impl.get('name')}\nDalvik Code:\n{impl.get('code_snippet')}")
+                if "code_snippet" in impl:
+                    code = impl.get("code_snippet", "").strip()
+                    if code:
+                        deep_context.append(f"SSL Pinning Method: {impl.get('class')}->{impl.get('method')} {impl.get('name')}\nDalvik Code:\n{code}")
+                    else:
+                        deep_context.append(f"SSL Pinning Method: {impl.get('class')}->{impl.get('method')} {impl.get('name')}\nDalvik Code: [Native or Interface method - No Dalvik bytecode]")
         
         if ssl_data.get("classes_with_pinning"):
             deep_context.append("SSL Pinning Classes: " + ", ".join(ssl_data["classes_with_pinning"][:5]))
