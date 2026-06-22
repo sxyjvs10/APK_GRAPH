@@ -2,7 +2,7 @@ import os
 import re
 import yaml
 from apkgraph.core.engine import BaseIntelligenceModule, SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM, SEVERITY_LOW, SEVERITY_INFO
-from apkgraph.core.text_heuristics import MAX_STRING_LEN
+from apkgraph.core.text_heuristics import MAX_STRING_LEN, is_noisy_identifier_like
 
 class CustomYamlAnalyzer(BaseIntelligenceModule):
     """
@@ -84,11 +84,35 @@ class CustomYamlAnalyzer(BaseIntelligenceModule):
                             val = match.group(0)
                             if val in seen:
                                 continue
-                            seen.add(val)
-                            
+                                
                             if locations is None:
                                 locations = self._locations_for(string_analysis)
                                 
+                            # Filter 1: Ignore known open-source libraries to reduce noise
+                            is_3rd_party = False
+                            for loc in locations:
+                                if loc.startswith(("Lorg/apache/", "Landroidx/", "Lkotlin/", "Lcom/google/", "Ljava/", "Ljavax/")):
+                                    is_3rd_party = True
+                                    break
+                            if is_3rd_party:
+                                continue
+                                
+                            # Filter 2: Pure hex hashes (MD5, SHA1, SHA256)
+                            # Often falsely flagged by generic secret rules
+                            if len(val) in (32, 40, 64) and re.match(r'^[A-Fa-f0-9]+$', val):
+                                if "aws" not in rule_id.lower() and "hash" not in rule_id.lower():
+                                    continue
+                                    
+                            # Filter 3: Low entropy (readable strings like "permission:xyz")
+                            if len(val) > 15 and len(set(val)) < 8:
+                                continue
+                                
+                            # Filter 4: Very noisy programming identifiers
+                            if is_noisy_identifier_like(val):
+                                continue
+                                
+                            seen.add(val)
+                            
                             findings.append({
                                 "type": f"Custom YAML Rule: {rule_id}",
                                 "value": val[:120],
