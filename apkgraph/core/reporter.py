@@ -877,12 +877,23 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 
             html += f'<h3>{section_title}</h3>'
             shown = 0
+            
+            grouped_items = {}
             for item in items:
+                repro = item.get("reproduction", {})
+                threat = str(repro.get("threat") or item.get("vulnerability") or item.get("type") or item.get("description") or "Security Finding")
+                if threat not in grouped_items:
+                    grouped_items[threat] = []
+                grouped_items[threat].append(item)
+
+            for threat_key, group in grouped_items.items():
+                item = group[0]
+                count = len(group)
                 repro = item.get("reproduction", {})
                 
                 if shown >= 30:
-                    remaining = len(items) - shown
-                    html += f'<p style="font-size:.78rem;color:var(--muted);margin:.5rem 0 1rem">... and {remaining} more findings (see JSON report)</p>'
+                    remaining = len(grouped_items) - shown
+                    html += f'<p style="font-size:.78rem;color:var(--muted);margin:.5rem 0 1rem">... and {remaining} more finding types (see JSON report)</p>'
                     break
 
                 counter += 1
@@ -890,8 +901,10 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
 
                 sev = get_sev(item)
                 
-                # Fallback extraction for items without reproduction blocks
                 threat = repro.get("threat") or item.get("vulnerability") or item.get("type") or item.get("description") or "Security Finding"
+                if count > 1:
+                    threat = f"{threat} ({count} occurrences)"
+                    
                 impact = repro.get("impact") or item.get("note") or item.get("reason") or "Potential security risk detected statically."
                 cvss   = repro.get("cvss", "")
                 steps  = repro.get("steps", [])
@@ -902,50 +915,60 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                     steps.append("Connect your device via USB with adb installed.")
                     steps.append("Copy and run the generated adb payload below to dynamically test the component.")
 
-                # Evidence value
-                evidence = (
-                    item.get("value") or item.get("snippet") or item.get("name") or
-                    item.get("url") or item.get("component") or item.get("description") or ""
-                )
-                evidence_str = str(evidence)[:200]
-
-                # Location / Path extraction
-                loc_parts = []
-                if item.get("file"): loc_parts.append(str(item.get("file")))
-                elif item.get("path"): loc_parts.append(str(item.get("path")))
+                evidence_list = []
+                loc_list = []
                 
-                if item.get("class"): 
-                    cls = str(item.get("class"))
-                    if item.get("method"):
-                        cls += f" -> {item.get('method')}()"
-                    loc_parts.append(cls)
-                elif item.get("locations"):
-                    locs = item.get("locations")
-                    if isinstance(locs, list) and len(locs) > 0:
-                        loc_parts.append(str(locs[0]))
-                    else:
-                        loc_parts.append(str(locs))
-                elif item.get("location"):
-                    loc = item.get("location")
-                    if isinstance(loc, list) and len(loc) > 0:
-                        loc_parts.append(str(loc[0]))
-                    else:
-                        loc_parts.append(str(loc))
-                elif item.get("usage_method"):
-                    loc_parts.append(str(item.get("usage_method")))
-                    if item.get("sink_path"):
-                        loc_parts.append(f"Sink: {item.get('sink_path')}")
-                elif item.get("source_method"):
-                    loc_parts.append(str(item.get("source_method")))
-                    if item.get("sink_path"):
-                        loc_parts.append(f"Sink: {item.get('sink_path')}")
-                elif item.get("activity"):
-                    loc_parts.append(str(item.get("activity")))
-                elif item.get("name") and not evidence:
-                    # Fallback for Manifest Exported Components
-                    loc_parts.append(str(item.get("name")))
+                for g_item in group[:5]:
+                    ev = (g_item.get("value") or g_item.get("snippet") or g_item.get("name") or
+                          g_item.get("url") or g_item.get("component") or g_item.get("description") or "")
+                    if ev and str(ev) not in evidence_list:
+                        evidence_list.append(str(ev)[:200])
+                        
+                    loc_parts = []
+                    if g_item.get("file"): loc_parts.append(str(g_item.get("file")))
+                    elif g_item.get("path"): loc_parts.append(str(g_item.get("path")))
                     
-                loc_str = " | ".join(loc_parts)
+                    if g_item.get("class"): 
+                        cls = str(g_item.get("class"))
+                        if g_item.get("method"):
+                            cls += f" -> {g_item.get('method')}()"
+                        loc_parts.append(cls)
+                    elif g_item.get("locations"):
+                        locs = g_item.get("locations")
+                        if isinstance(locs, list) and len(locs) > 0:
+                            loc_parts.append(str(locs[0]))
+                        else:
+                            loc_parts.append(str(locs))
+                    elif g_item.get("location"):
+                        loc = g_item.get("location")
+                        if isinstance(loc, list) and len(loc) > 0:
+                            loc_parts.append(str(loc[0]))
+                        else:
+                            loc_parts.append(str(loc))
+                    elif g_item.get("usage_method"):
+                        loc_parts.append(str(g_item.get("usage_method")))
+                        if g_item.get("sink_path"):
+                            loc_parts.append(f"Sink: {g_item.get('sink_path')}")
+                    elif g_item.get("source_method"):
+                        loc_parts.append(str(g_item.get("source_method")))
+                        if g_item.get("sink_path"):
+                            loc_parts.append(f"Sink: {g_item.get('sink_path')}")
+                    elif g_item.get("activity"):
+                        loc_parts.append(str(g_item.get("activity")))
+                    elif g_item.get("name") and not ev:
+                        loc_parts.append(str(g_item.get("name")))
+                        
+                    l_str = " | ".join(loc_parts)
+                    if l_str and l_str not in loc_list:
+                        loc_list.append(l_str)
+                        
+                evidence_str = "<br>".join([self._esc(e) for e in evidence_list])
+                if len(group) > 5:
+                    evidence_str += f"<br><em>... and {len(group)-5} more</em>"
+                    loc_list.append(f"... and {len(group)-5} more locations")
+                    
+                loc_str_html = "<br>".join([f'<code style="background:#f1f1f1;padding:2px 5px;border-radius:3px;color:#d32f2f">{self._esc(l)}</code>' for l in loc_list])
+
 
                 # JWT special fields
                 claims_html = ""
@@ -993,9 +1016,9 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
       <dt>Severity</dt><dd><span class="badge badge-{sev}">{sev}</span></dd>
       {'<dt>CVSS Vector</dt><dd><span class="cvss">' + cvss + '</span></dd>' if cvss else ''}
       <dt>Impact</dt><dd>{self._esc(impact)}</dd>
-      {'<dt>Location</dt><dd><code style="background:#f1f1f1;padding:2px 5px;border-radius:3px;color:#d32f2f">' + self._esc(loc_str) + '</code></dd>' if loc_str else ''}
+      {'<dt>Location</dt><dd>' + loc_str_html + '</dd>' if loc_str_html else ''}
     </dl>
-    {'<div class="poc-label">Evidence</div><div class="evidence-block">' + self._esc(evidence_str) + '</div>' if evidence_str else ''}
+    {'<div class="poc-label">Evidence</div><div class="evidence-block">' + evidence_str + '</div>' if evidence_str else ''}
     {claims_html}
     {'<div class="poc-label">Exploitation Steps</div>' + steps_html if steps_html else ''}
     {poc_html}
