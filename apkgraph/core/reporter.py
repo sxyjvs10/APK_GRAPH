@@ -146,6 +146,14 @@ class ReportGenerator:
             ("Manifest",     "Exported Components"),
             ("Endpoint",     "API Endpoints"),
             ("CustomYAML",   "Custom YAML Rules Findings"),
+            ("PhantomAPI",   "Phantom API Endpoints"),
+            ("PermissionGap","Permission Gaps & Supply Chain Risks"),
+            ("DeadCode",     "Dead/Hidden Code Resurrection"),
+            ("StringReconstructor", "Obfuscated Secrets (Decoded)"),
+            ("Signature",    "Insecure Signatures"),
+            ("LogcatLeakage","Logcat Information Leakage"),
+            ("Screenshot",   "Missing Screenshot Protections"),
+            ("Tapjacking",   "Tapjacking Vulnerabilities"),
         ]
 
         finding_num = 0
@@ -821,6 +829,14 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
             ("HiddenFunction", "M10: Extraneous Functionality", lambda d: d if isinstance(d, list) else []),
             ("ICC",         " Cross-Component Taint Flows",     lambda d: d if isinstance(d, list) else []),
             ("CustomYAML",  "Custom YAML Security Rules",       lambda d: d if isinstance(d, list) else []),
+            ("PhantomAPI",  "M3: Phantom API Endpoints",        lambda d: d if isinstance(d, list) else []),
+            ("PermissionGap","M1: Permission Gaps & Supply Chain Risks",lambda d: d if isinstance(d, list) else []),
+            ("DeadCode",    "M10: Dead/Hidden Code Resurrection", lambda d: d if isinstance(d, list) else []),
+            ("StringReconstructor", "M4: Obfuscated Secrets Recovered", lambda d: d if isinstance(d, list) else []),
+            ("Signature",   "M1: Insecure Signatures",          lambda d: d if isinstance(d, list) else []),
+            ("LogcatLeakage","M2: Logcat Information Leakage",   lambda d: d if isinstance(d, list) else []),
+            ("Screenshot",  "M1: Missing Screenshot Protections", lambda d: d if isinstance(d, list) else []),
+            ("Tapjacking",  "M1: Tapjacking Vulnerabilities",    lambda d: d if isinstance(d, list) else []),
         ]
 
         def sev_rank(s):
