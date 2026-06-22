@@ -918,7 +918,7 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                 evidence_list = []
                 loc_list = []
                 
-                for g_item in group[:10]:
+                for g_item in group[:100]:
                     ev = (g_item.get("value") or g_item.get("snippet") or g_item.get("name") or
                           g_item.get("url") or g_item.get("component") or g_item.get("description") or "")
                     if ev and str(ev) not in evidence_list:
@@ -963,10 +963,10 @@ document.querySelectorAll('.copy-btn').forEach(btn => {{
                         loc_list.append(l_str)
                         
                 evidence_str = "<br>".join([self._esc(e) for e in evidence_list])
-                if len(group) > 10:
+                if len(group) > 100:
                     if evidence_list:
-                        evidence_str += f"<br><em>... and {len(group)-10} more</em>"
-                    loc_list.append(f"... and {len(group)-10} more locations")
+                        evidence_str += f"<br><em>... and {len(group)-100} more</em>"
+                    loc_list.append(f"... and {len(group)-100} more locations")
                     
                 loc_str_html = "<br>".join([f'<code style="background:#f1f1f1;padding:2px 5px;border-radius:3px;color:#d32f2f">{self._esc(l)}</code>' for l in loc_list])
 
