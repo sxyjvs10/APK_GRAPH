@@ -17,10 +17,10 @@ from apkgraph.core.engine import BaseIntelligenceModule, SEVERITY_HIGH, SEVERITY
 _JAVA_USE_RE = re.compile(r'Java\.use\([\'"]([^\'"]+)[\'"]\)')
 
 def _is_app_specific_class(cls_name: str) -> bool:
-    """Returns True if the class is likely app-specific and not a core Android/Java library."""
+    """Returns True if the class is likely app-specific or a non-standard 3rd party library, not a core Android/Java library."""
     core_prefixes = (
         "java.", "javax.", "android.", "androidx.", "dalvik.", "libcore.", "sun.", 
-        "org.apache.", "org.json.", "org.xml.", "org.w3c.", "com.android."
+        "org.apache.", "org.json.", "org.xml.", "org.w3c.", "com.android.", "kotlin.", "kotlinx."
     )
     return not cls_name.startswith(core_prefixes)
 
@@ -76,29 +76,24 @@ class FridaHookAnalyzer(BaseIntelligenceModule):
                 for cls in uses:
                     # Frida syntax often matches exactly the Java syntax (com.example.App)
                     if cls in apk_classes:
-                        matched_classes.append(cls)
+                        # ONLY count non-core classes as a 'verified match' to avoid universally false positives
                         if _is_app_specific_class(cls):
-                            app_specific_matches.append(cls)
+                            matched_classes.append(cls)
                 
                 if matched_classes:
-                    confidence = "High" if app_specific_matches else "Medium"
-                    severity = SEVERITY_HIGH if app_specific_matches else SEVERITY_MEDIUM
+                    severity = SEVERITY_HIGH
                     
                     matched_scripts.append({
                         "script_name": js_file.name,
                         "script_content": content,
                         "total_targets": len(uses),
                         "matched_targets": len(matched_classes),
-                        "confidence": confidence,
+                        "confidence": "High",
                         "classes_found_in_apk": matched_classes,
-                        "app_specific_hooks_found": app_specific_matches,
                         "severity": severity
                     })
                     
-                    if severity == SEVERITY_HIGH:
-                        result["overall_severity"] = SEVERITY_HIGH
-                    elif severity == SEVERITY_MEDIUM and result["overall_severity"] == SEVERITY_LOW:
-                        result["overall_severity"] = SEVERITY_MEDIUM
+                    result["overall_severity"] = SEVERITY_HIGH
                         
             except Exception:
                 pass
