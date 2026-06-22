@@ -4,7 +4,7 @@ class PermissionGapAnalyzer(BaseIntelligenceModule):
     def analyze(self) -> list[dict]:
         findings = []
         manifest = self.apk_data.get("manifest")
-        if not manifest:
+        if manifest is None:
             return findings
             
         requested_permissions = []

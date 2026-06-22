@@ -5,6 +5,10 @@ import sys
 import os
 import json
 import time
+import warnings
+
+# Suppress FutureWarnings (e.g. from regex parsing of user-provided YAML rules or truth-testing in ElementTree)
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import click
 import concurrent.futures
 from concurrent.futures import TimeoutError as FutureTimeoutError
