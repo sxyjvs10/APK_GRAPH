@@ -41,6 +41,10 @@ from apkgraph.engines.phantom_api import PhantomApiAnalyzer
 from apkgraph.engines.permission_gap import PermissionGapAnalyzer
 from apkgraph.engines.dead_code import DeadCodeAnalyzer
 from apkgraph.engines.string_reconstructor import StringReconstructorAnalyzer
+from apkgraph.engines.signature import SignatureAnalyzer
+from apkgraph.engines.logcat import LogcatLeakageAnalyzer
+from apkgraph.engines.screenshot import ScreenshotAnalyzer
+from apkgraph.engines.tapjacking import TapjackingAnalyzer
 
 from apkgraph.core.graph import KnowledgeGraph
 from apkgraph.core.predictor import AttackPathPredictor
@@ -80,6 +84,10 @@ ALL_MODULES = {
     "PermissionGap":         PermissionGapAnalyzer,
     "DeadCode":              DeadCodeAnalyzer,
     "StringReconstructor":   StringReconstructorAnalyzer,
+    "Signature":             SignatureAnalyzer,
+    "LogcatLeakage":         LogcatLeakageAnalyzer,
+    "Screenshot":            ScreenshotAnalyzer,
+    "Tapjacking":            TapjackingAnalyzer,
 }
 
 _PHASE_APK_LOAD    = 10
