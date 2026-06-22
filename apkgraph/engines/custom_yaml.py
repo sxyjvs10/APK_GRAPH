@@ -33,8 +33,13 @@ class CustomYamlAnalyzer(BaseIntelligenceModule):
             with open(filepath, 'r', encoding='utf-8') as f:
                 rule_docs = yaml.safe_load_all(f)
                 for doc in rule_docs:
-                    if doc and 'id' in doc and 'patterns' in doc:
-                        self.rules.append(doc)
+                    if isinstance(doc, list):
+                        for rule in doc:
+                            if isinstance(rule, dict) and 'id' in rule and 'patterns' in rule:
+                                self.rules.append(rule)
+                    elif isinstance(doc, dict):
+                        if 'id' in doc and 'patterns' in doc:
+                            self.rules.append(doc)
         except Exception as e:
             # We silently ignore malformed YAML files in this engine
             pass
