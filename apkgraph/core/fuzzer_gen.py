@@ -13,8 +13,8 @@ class IntentFuzzerGenerator:
         self.findings = findings
 
     def generate(self, output_dir: str):
-        icc_data = self.findings.get("IntentHijacking", {})
-        components = icc_data.get("exported_components", [])
+        icc_data = self.findings.get("IntentHijacking", [])
+        components = icc_data if isinstance(icc_data, list) else icc_data.get("exported_components", [])
         
         if not components:
             return None
