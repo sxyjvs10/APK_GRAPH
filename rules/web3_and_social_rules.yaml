@@ -1,0 +1,75 @@
+- id: eth-private-key
+  info:
+    name: Ethereum/EVM Private Key
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects hardcoded Ethereum/EVM wallet private keys. If leaked, attackers can steal all funds from the wallet.
+  patterns:
+    - '(?i)0x[0-9a-f]{64}'
+    - '(?i)private_key\s*[:=]\s*[''"][0-9a-f]{64}[''"]'
+
+- id: mongodb-uri-leak
+  info:
+    name: MongoDB Connection URI
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects hardcoded MongoDB connection strings containing plaintext passwords.
+  patterns:
+    - '(?i)mongodb\+srv://[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+@[a-zA-Z0-9_.-]+'
+    - '(?i)mongodb://[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+@[a-zA-Z0-9_.-]+'
+
+- id: facebook-client-secret
+  info:
+    name: Facebook / Meta Client Secret
+    author: APKGraph Advanced
+    severity: high
+    description: Detects hardcoded Facebook App Client Secrets, which can be abused to spoof the application during OAuth.
+  patterns:
+    - '(?i)facebook.*secret.*[a-f0-9]{32}'
+
+- id: twitter-api-secret
+  info:
+    name: Twitter / X API Secret
+    author: APKGraph Advanced
+    severity: high
+    description: Detects hardcoded Twitter API Secrets.
+  patterns:
+    - '(?i)twitter.*secret.*[a-zA-Z0-9]{50}'
+
+- id: google-oauth-client
+  info:
+    name: Google OAuth Client ID
+    author: APKGraph Advanced
+    severity: medium
+    description: Detects Google OAuth Web Client IDs. While sometimes public, they should be reviewed to ensure they belong to the correct tenant.
+  patterns:
+    - '[0-9]{11,15}-[a-zA-Z0-9_]{20,32}\.apps\.googleusercontent\.com'
+
+- id: dsn-sentry-leak
+  info:
+    name: Sentry DSN Leak
+    author: APKGraph Advanced
+    severity: medium
+    description: Detects Sentry DSN URLs. If the DSN includes a secret key, attackers can spam the error tracking service and exhaust quotas.
+  patterns:
+    - '(?i)https://[a-z0-9]+:[a-z0-9]+@o[0-9]+\.ingest\.sentry\.io/[0-9]+'
+    - '(?i)https://[a-z0-9]+@sentry\.io/[0-9]+'
+
+- id: mailchimp-api-key
+  info:
+    name: MailChimp API Key
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects MailChimp API keys, allowing attackers to access customer lists and send mass phishing campaigns.
+  patterns:
+    - '[0-9a-f]{32}-us[0-9]{1,2}'
+
+- id: square-access-token
+  info:
+    name: Square Access Token
+    author: APKGraph Advanced
+    severity: critical
+    description: Detects Square payment gateway access tokens.
+  patterns:
+    - 'sq0atp-[0-9A-Za-z\-_]{22}'
+    - 'sq0csp-[0-9A-Za-z\-_]{43}'
