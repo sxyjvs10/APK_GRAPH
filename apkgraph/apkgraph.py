@@ -37,6 +37,10 @@ from apkgraph.engines.yara_scanner import YaraScannerAnalyzer
 from apkgraph.engines.deobfuscator import DeobfuscationAnalyzer
 from apkgraph.engines.cross_platform import CrossPlatformAnalyzer
 from apkgraph.engines.custom_yaml import CustomYamlAnalyzer
+from apkgraph.engines.phantom_api import PhantomApiAnalyzer
+from apkgraph.engines.permission_gap import PermissionGapAnalyzer
+from apkgraph.engines.dead_code import DeadCodeAnalyzer
+from apkgraph.engines.string_reconstructor import StringReconstructorAnalyzer
 
 from apkgraph.core.graph import KnowledgeGraph
 from apkgraph.core.predictor import AttackPathPredictor
@@ -72,6 +76,10 @@ ALL_MODULES = {
     "Deobfuscation":         DeobfuscationAnalyzer,
     "CrossPlatform":         CrossPlatformAnalyzer,
     "CustomYAML":            CustomYamlAnalyzer,
+    "PhantomAPI":            PhantomApiAnalyzer,
+    "PermissionGap":         PermissionGapAnalyzer,
+    "DeadCode":              DeadCodeAnalyzer,
+    "StringReconstructor":   StringReconstructorAnalyzer,
 }
 
 _PHASE_APK_LOAD    = 10
